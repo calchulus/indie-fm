@@ -13,6 +13,7 @@ import { getFatigueMultiplier } from './fatigue';
 import { computePassDifficulty, computeGKDecision } from './decision-ai';
 import { rollInjury } from './setpieces';
 import { advanceChain, createPossessionChain, detectCounterAttack, tickCounter, getCounterAttackBonus, PossessionChain, CounterAttackState } from './match-context';
+import { detectRivalry, RivalryInfo } from './match-systems-2';
 
 let eventId = 0;
 
@@ -46,11 +47,16 @@ export function invalidateStrengthCache(): void {
 let homeChain: PossessionChain = createPossessionChain('');
 let awayChain: PossessionChain = createPossessionChain('');
 let counterState: CounterAttackState = { active: false, teamId: null, speed: 0, ticksRemaining: 0 };
+let matchRivalry: RivalryInfo = { isDerby: false, isRivalry: false, intensity: 1, cardChanceMod: 1.0, atmosphereMod: 1.0, description: '' };
 
 export function resetMatchContext(homeId: string, awayId: string): void {
   homeChain = createPossessionChain(homeId);
   awayChain = createPossessionChain(awayId);
   counterState = { active: false, teamId: null, speed: 0, ticksRemaining: 0 };
+}
+
+export function getMatchRivalry(): RivalryInfo {
+  return matchRivalry;
 }
 
 function createEvent(
@@ -167,6 +173,7 @@ function estimateFitness(player: Player, minute: number, weatherDrainMod: number
 export function initMatchState(home: Team, away: Team): MatchState {
   resetMatchContext(home.id, away.id);
   invalidateStrengthCache();
+  matchRivalry = detectRivalry(home, away);
   const homeSlots = getFormationSlots(home.tactics.formation);
   const awaySlots = getFormationSlots(away.tactics.formation);
 
@@ -536,7 +543,7 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
         getCommentary('foul', tackler.name),
         x, y, 'failure', tackler.id,
       )];
-      if (Math.random() < 0.15) {
+      if (Math.random() < 0.15 * matchRivalry.cardChanceMod) {
         newState.events = [...newState.events, createEvent(
           newState.tick, 'yellow_card', defendingTeam.id,
           getCommentary('yellow_card', tackler.name),
@@ -544,8 +551,8 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
         )];
         newState.stoppages++;
       }
-      // Red card chance (rare)
-      if (Math.random() < 0.03) {
+      // Red card chance (rare, boosted by rivalry)
+      if (Math.random() < 0.03 * matchRivalry.cardChanceMod) {
         newState.redCards = { ...newState.redCards };
         if (defendingTeam.id === home.id) newState.redCards.home++;
         else newState.redCards.away++;

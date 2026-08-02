@@ -5,7 +5,6 @@
 import { describe, it, expect } from 'vitest';
 import { initMatchState, simulateMinutes, simulateTick, invalidateStrengthCache } from '../../simulation/engine';
 import { generateTeam, generateLeague, generatePlayer } from '../../data/generators';
-import { Team, Player } from '../../types';
 
 // === MATCH ENGINE FEATURES ===
 
@@ -131,7 +130,7 @@ describe('FEATURE: Tactics affect match outcomes', () => {
 
 describe('FEATURE: League generation produces valid structure', () => {
   it('generates 20 teams with 11+ players each', () => {
-    const league = generateLeague(20, 65);
+    const league = generateLeague(20);
     expect(league.teams).toHaveLength(20);
     league.teams.forEach((t) => {
       expect(t.players.length).toBeGreaterThanOrEqual(11);
@@ -140,7 +139,7 @@ describe('FEATURE: League generation produces valid structure', () => {
   });
 
   it('generates fixtures for all teams', () => {
-    const league = generateLeague(12, 65);
+    const league = generateLeague(12);
     expect(league.fixtures.length).toBeGreaterThan(0);
   });
 });
