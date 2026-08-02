@@ -1,0 +1,316 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/data/names.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/data</a> names.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>7/7</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>7/7</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const FIRST_NAMES = [
+  'James', 'Marcus', 'Oliver', 'Daniel', 'Lucas', 'Ethan', 'Noah', 'Liam', 'Kai', 'Andre',
+  'Carlos', 'Diego', 'Pablo', 'Sergio', 'Marco', 'Luca', 'Hugo', 'Felix', 'Oscar', 'Leo',
+  'Yuki', 'Kenji', 'Sadio', 'Amara', 'Kofi', 'Tariq', 'Ivan', 'Dmitri', 'Erik', 'Lars',
+  'Mohamed', 'Omar', 'Youssef', 'Rashid', 'Tomás', 'Rafael', 'Bruno', 'Thiago', 'Mateo', 'Enzo',
+  'Jack', 'Harry', 'Charlie', 'George', 'William', 'Thomas', 'Alexander', 'Benjamin', 'Samuel', 'Joseph',
+  'Antoine', 'Kylian', 'Ousmane', 'N\'Golo', 'Karim', 'Paulo', 'João', 'Diogo', 'Bernardo', 'Rúben',
+  'Lautaro', 'Ángel', 'Giovani', 'Nicolás', 'Alejandro', 'Andrés', 'Juan', 'Felipe', 'Cristian', 'Emiliano',
+  'Takeshi', 'Shinji', 'Takumi', 'Daichi', 'Haruki', 'Kwame', 'Abdul', 'Ibrahim', 'Moussa', 'Idrissa',
+  'Viktor', 'Andrei', 'Sergei', 'Nikolai', 'Pavel', 'Stefan', 'Luka', 'Marko', 'Filip', 'Dusan',
+  'Christian', 'Mikkel', 'Emil', 'Frederik', 'Piotr', 'Robert', 'Jakub', 'Bartosz', 'Szymon', 'Kacper',
+];
+&nbsp;
+const LAST_NAMES = [
+  'Silva', 'Santos', 'Rodriguez', 'Martinez', 'Johnson', 'Williams', 'Brown', 'Taylor', 'Müller', 'Schmidt',
+  'Rossi', 'Bianchi', 'Dubois', 'Laurent', 'García', 'López', 'Fernández', 'Torres', 'Nakamura', 'Tanaka',
+  'Okafor', 'Diallo', 'Mensah', 'Hassan', 'Petrov', 'Novak', 'Andersen', 'Johansson', 'Ali', 'Rahman',
+  'Costa', 'Oliveira', 'Pereira', 'Almeida', 'Kovac', 'Horvat', 'Svoboda', 'Zielinski', 'Kowalski', 'Nowak',
+  'Smith', 'Jones', 'Walker', 'Wright', 'Robinson', 'Clarke', 'Hughes', 'Bennett', 'Cooper', 'Richardson',
+  'Griezmann', 'Mbappé', 'Dembélé', 'Kanté', 'Benzema', 'Neves', 'Félix', 'Jota', 'Silva', 'Dias',
+  'Messi', 'Di María', 'Lo Celso', 'Otamendi', 'De Paul', 'Iniesta', 'Villa', 'Ramos', 'Pedri', 'Gavi',
+  'Honda', 'Kagawa', 'Minamino', 'Tomiyasu', 'Endo', 'Partey', 'Koulibaly', 'Mané', 'Salah', 'Gueye',
+  'Modric', 'Perisic', 'Brozovic', 'Vlasic', 'Kramaric', 'Lewandowski', 'Szczesny', 'Milik', 'Piatek', 'Glik',
+  'Eriksen', 'Hojbjerg', 'Schmeichel', 'Haaland', 'Odegaard', 'Berg', 'Isak', 'Kulusevski', 'Svanberg', 'Nilsson',
+];
+&nbsp;
+const NATIONALITIES = [
+  'England', 'Brazil', 'Argentina', 'France', 'Germany', 'Spain', 'Italy', 'Portugal',
+  'Netherlands', 'Belgium', 'Croatia', 'Japan', 'Nigeria', 'Senegal', 'Morocco', 'Egypt',
+  'Denmark', 'Sweden', 'Norway', 'Poland', 'Colombia', 'Uruguay', 'Mexico', 'USA',
+];
+&nbsp;
+const TEAM_NAMES = [
+  'Northgate United', 'Riverside FC', 'Oakwood City', 'Hillcrest Rovers', 'Harbour Athletic',
+  'Kingsford Town', 'Meadowbrook FC', 'Stonebridge United', 'Redcliff Wanderers', 'Ashfield City',
+  'Thornbury Rovers', 'Westhaven FC', 'Ironvale United', 'Lakeside Athletic', 'Copperfield Town',
+  'Greystone City', 'Fairview Rovers', 'Blackmoor FC', 'Silverdale United', 'Whitmore Athletic',
+];
+&nbsp;
+const CITIES = [
+  'Northgate', 'Riverside', 'Oakwood', 'Hillcrest', 'Harbourside',
+  'Kingsford', 'Meadowbrook', 'Stonebridge', 'Redcliff', 'Ashfield',
+  'Thornbury', 'Westhaven', 'Ironvale', 'Lakeside', 'Copperfield',
+  'Greystone', 'Fairview', 'Blackmoor', 'Silverdale', 'Whitmore',
+];
+&nbsp;
+const STADIUMS = [
+  'The Fortress', 'Riverside Park', 'Oakwood Arena', 'Hillcrest Ground', 'Harbour Stadium',
+  'Kingsford Park', 'Meadow Lane', 'Stonebridge Stadium', 'Redcliff Field', 'Ashfield Park',
+  'Thornbury Ground', 'Westhaven Arena', 'Ironvale Stadium', 'Lakeside Park', 'Copperfield Ground',
+  'Greystone Arena', 'Fairview Park', 'Blackmoor Stadium', 'Silverdale Field', 'Whitmore Park',
+];
+&nbsp;
+const TEAM_COLORS: Array&lt;{ primary: string; secondary: string }&gt; = [
+  { primary: '#e63946', secondary: '#ffffff' },
+  { primary: '#457b9d', secondary: '#f1faee' },
+  { primary: '#2d6a4f', secondary: '#ffffff' },
+  { primary: '#e76f51', secondary: '#264653' },
+  { primary: '#6a4c93', secondary: '#ffffff' },
+  { primary: '#1d3557', secondary: '#e63946' },
+  { primary: '#f4a261', secondary: '#264653' },
+  { primary: '#264653', secondary: '#2a9d8f' },
+  { primary: '#d62828', secondary: '#003049' },
+  { primary: '#023e8a', secondary: '#ffffff' },
+  { primary: '#606c38', secondary: '#fefae0' },
+  { primary: '#bc6c25', secondary: '#ffffff' },
+  { primary: '#3d405b', secondary: '#e07a5f' },
+  { primary: '#0077b6', secondary: '#caf0f8' },
+  { primary: '#9b2226', secondary: '#ee9b00' },
+  { primary: '#005f73', secondary: '#94d2bd' },
+  { primary: '#582f0e', secondary: '#a68a64' },
+  { primary: '#10002b', secondary: '#e0aaff' },
+  { primary: '#004e64', secondary: '#25a18e' },
+  { primary: '#7f5539', secondary: '#ddb892' },
+];
+&nbsp;
+export { FIRST_NAMES, LAST_NAMES, NATIONALITIES, TEAM_NAMES, CITIES, STADIUMS, TEAM_COLORS };
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-08-02T07:08:55.445Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    
