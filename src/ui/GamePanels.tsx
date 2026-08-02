@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/gameStore';
 import { MomentumSparkline, computeMomentumSparkline, computeSquadDepth, computeAchievements, buildQuickMatchSummary } from './GameSystemsUI';
+import { computeSquadHierarchy } from '../simulation/depth-systems';
 
 export function MatchInsights() {
   const { matchState, matchHome, matchAway } = useGameStore();
@@ -47,10 +48,20 @@ export function SquadDepthChart() {
   if (!team) return null;
 
   const depth = computeSquadDepth(team);
+  const hierarchy = computeSquadHierarchy(team);
 
   return (
     <div style={{ padding: '12px 16px', overflowY: 'auto', height: '100%' }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>📋 Squad Depth Chart</h3>
+
+      {/* Hierarchy */}
+      {hierarchy.captain && (
+        <div style={{ marginBottom: 12, padding: 10, background: 'rgba(250,204,21,0.08)', borderRadius: 8, border: '1px solid rgba(250,204,21,0.2)', fontSize: 12 }}>
+          <span style={{ color: '#facc15' }}>© Captain:</span> {hierarchy.captain.name}
+          {hierarchy.viceCaptain && <span style={{ marginLeft: 12, color: '#aaa' }}>Vice: {hierarchy.viceCaptain.name}</span>}
+          <div style={{ marginTop: 4, color: '#888' }}>Senior group: {hierarchy.seniorGroup.map((p) => p.name.split(' ').pop()).join(', ')}</div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {depth.map((entry) => (
           <div key={entry.position} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

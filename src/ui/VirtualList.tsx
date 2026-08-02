@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, ReactNode } from 'react';
+import { ReactNode } from 'react';
+import { useVirtualList } from './useVirtualList';
 
 interface VirtualListProps {
   items: unknown[];
@@ -9,33 +10,24 @@ interface VirtualListProps {
 }
 
 export function VirtualList({ items, renderItem, itemHeight, overscan = 5, height = 500 }: VirtualListProps) {
-  const [scrollTop, setScrollTop] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { visibleRange, onScroll, containerStyle, spacerTop, spacerBottom } = useVirtualList({
+    itemHeight,
+    containerHeight: height,
+    totalItems: items.length,
+    overscan,
+  });
 
-  const totalHeight = items.length * itemHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-  const endIndex = Math.min(items.length, Math.ceil((scrollTop + height) / itemHeight) + overscan);
-  const visibleItems = items.slice(startIndex, endIndex);
-
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  }, []);
+  const visibleItems = items.slice(visibleRange.startIndex, visibleRange.endIndex);
 
   return (
-    <div
-      ref={containerRef}
-      onScroll={handleScroll}
-      style={{ height, overflow: 'auto', position: 'relative' }}
-    >
-      <div style={{ height: totalHeight, position: 'relative' }}>
-        <div style={{ position: 'absolute', top: startIndex * itemHeight, left: 0, right: 0 }}>
-          {visibleItems.map((item, i) => (
-            <div key={startIndex + i} style={{ height: itemHeight }}>
-              {renderItem(item, startIndex + i)}
-            </div>
-          ))}
+    <div onScroll={onScroll} style={containerStyle}>
+      <div style={{ height: spacerTop }} />
+      {visibleItems.map((item, i) => (
+        <div key={visibleRange.startIndex + i} style={{ height: itemHeight }}>
+          {renderItem(item, visibleRange.startIndex + i)}
         </div>
-      </div>
+      ))}
+      <div style={{ height: spacerBottom }} />
     </div>
   );
 }
