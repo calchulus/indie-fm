@@ -11,6 +11,7 @@ import { WeatherCondition, applyWeatherToPass, applyWeatherToShot, applyWeatherT
 import { MomentumState, getMomentumMultiplier } from './momentum';
 import { getFatigueMultiplier } from './fatigue';
 import { computePassDifficulty, computeGKDecision } from './decision-ai';
+import { rollInjury } from './setpieces';
 
 let eventId = 0;
 
@@ -490,6 +491,17 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
         `Free kick for ${attackingTeam.name}`,
         x, y, 'neutral',
       )];
+      // Injury check: fouled player may be injured
+      const fouledPlayer = pickBallCarrier(attackingTeam, 'midfield');
+      const injury = rollInjury(fouledPlayer, newState.minute, true);
+      if (injury) {
+        newState.events = [...newState.events, createEvent(
+          newState.tick, 'foul', attackingTeam.id,
+          `⚕️ ${injury.playerName} is injured (${injury.type}, ~${injury.roundsOut} rounds out)`,
+          x, y, 'failure', injury.playerId,
+        )];
+        newState.stoppages += 2;
+      }
     } else {
       newState.events = [...newState.events, createEvent(
         newState.tick, 'tackle', defendingTeam.id,
@@ -625,14 +637,48 @@ function movePlayersTowardFormation(state: MatchState, home: Team, away: Team, h
 
   state.playerPositions = state.playerPositions.map((pp) => {
     const isHome = pp.teamId === home.id;
+    const team = isHome ? home : away;
     const slots = isHome ? homeSlots : awaySlots;
-    const playerIdx = (isHome ? home : away).players.findIndex((p) => p.id === pp.playerId);
+    const playerIdx = team.players.findIndex((p) => p.id === pp.playerId);
     if (playerIdx < 0 || playerIdx >= slots.length) return pp;
 
+    const player = team.players[playerIdx];
     const slot = slots[playerIdx];
+    const hasPossession = isHome ? homeHasBall : !homeHasBall;
     const shift = isHome ? homeShift : awayShift;
-    const targetX = isHome ? slot.baseX + shift : PITCH_LENGTH - slot.baseX - shift;
-    const targetY = isHome ? slot.baseY : PITCH_WIDTH - slot.baseY;
+
+    let targetX = isHome ? slot.baseX + shift : PITCH_LENGTH - slot.baseX - shift;
+    let targetY = isHome ? slot.baseY : PITCH_WIDTH - slot.baseY;
+
+    // Off-ball movement: contextual runs based on position and possession
+    if (hasPossession) {
+      // Attackers make forward runs toward the box
+      if (['ST', 'CAM'].includes(player.position)) {
+        targetX += isHome ? 6 : -6;
+        // Strikers drift toward center for crosses
+        targetY += (PITCH_WIDTH / 2 - targetY) * 0.2;
+      }
+      // Wingers stay wide and push up to stretch defense
+      if (['LW', 'RW'].includes(player.position)) {
+        targetX += isHome ? 4 : -4;
+        const wideBias = player.position === 'LW' ? -4 : 4;
+        targetY += wideBias;
+      }
+      // Fullbacks overlap when team is attacking
+      if (['LB', 'RB'].includes(player.position) && Math.random() < 0.3) {
+        targetX += isHome ? 8 : -8;
+      }
+    } else {
+      // Defending: track back, compress space
+      if (['ST', 'LW', 'RW', 'CAM'].includes(player.position)) {
+        // Forwards drop back to press
+        targetX += isHome ? -3 : 3;
+      }
+      if (['LB', 'RB'].includes(player.position)) {
+        // Fullbacks tuck in when defending
+        targetY += (PITCH_WIDTH / 2 - targetY) * 0.15;
+      }
+    }
 
     const drift = 2;
     const newTargetX = clamp(targetX + (Math.random() - 0.5) * drift, 2, PITCH_LENGTH - 2);
