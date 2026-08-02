@@ -532,6 +532,10 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
               )];
             }
           }
+          // GK distribution: catch → launch counter-attack for defending team
+          if (gkDecision.action === 'catch' && gkDecision.distributionQuality > 0.5) {
+            counterState = detectCounterAttack(defendingTeam, true, attackingTeam.id);
+          }
         } else {
           if (isHomePossession) newState.homeScore++;
           else newState.awayScore++;
