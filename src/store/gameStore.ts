@@ -33,6 +33,9 @@ import { saveToLocalStorage, loadFromLocalStorage } from '../simulation/code-qua
 import { generatePressQuestions, computeFanSatisfaction, checkLegendStatus } from '../simulation/features-2';
 import { saveGame, loadGame, SaveSlot } from '../simulation/idb-storage';
 import { simulateBatchSync } from '../simulation/match-worker';
+import { Phase, SeasonState, createSeasonState, getNextPhase, shouldTransitionPhase, computePlayerMatchStats, PlayerMatchStats, generatePlayoffBracket, PlayoffSeries, generateDraftProspects, generateFreeAgentPool, FreeAgentListing, SeasonAwards, computeSeasonAwards as computeAwardsFromStats } from '../simulation/phase-system';
+import { developSeason, checkMatchFeats, checkCareerMilestones, ensureMinimumRoster, SeasonStatsRow } from '../simulation/player-lifecycle';
+import { simulateAITrades, isTradeDeadlinePassed } from '../simulation/trade-system';
 
 export interface Toast {
   id: string;
@@ -72,6 +75,15 @@ interface GameState {
   continentalState: ContinentalState | null;
   matchWeather: string;
   showFatigueBars: boolean;
+
+  // Phase system (ZenGM-style season loop)
+  seasonState: SeasonState;
+  allMatchStats: PlayerMatchStats[];
+  playoffBracket: PlayoffSeries[];
+  freeAgentPool: FreeAgentListing[];
+  seasonAwards: SeasonAwards | null;
+  playerSeasonHistory: Map<string, SeasonStatsRow[]>;
+  jerseyNumbers: Map<string, number>;
 
   // Actions
   initGame: () => void;
@@ -146,6 +158,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   continentalState: null,
   matchWeather: 'clear',
   showFatigueBars: true,
+
+  // Phase system initial state
+  seasonState: createSeasonState(1, 38),
+  allMatchStats: [],
+  playoffBracket: [],
+  freeAgentPool: [],
+  seasonAwards: null,
+  playerSeasonHistory: new Map(),
+  jerseyNumbers: new Map(),
 
   initGame: () => {
     const league = generateLeague(20);
@@ -611,6 +632,110 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (opponent && userTeamForDerby && opponent.city === userTeamForDerby.city) {
         get().addToast(`🔥 DERBY MATCH next round vs ${opponent.name}! Expect heightened atmosphere.`, 'goal');
       }
+    }
+
+    // === PHASE SYSTEM WIRING (ZenGM-style season loop) ===
+    const currentSeasonState = { ...get().seasonState, round: result.league.currentRound };
+
+    // 1. Per-match stats writing
+    if (result.userMatchResult && get().matchState) {
+      const ms = get().matchState!;
+      const userTeam = result.league.teams.find((t) => t.id === userTeamId);
+      if (userTeam) {
+        const matchStats = userTeam.players.slice(0, 11).map((p) =>
+          computePlayerMatchStats(p, userTeamId, ms.id, result.league.currentRound, currentSeasonState.seasonNumber, ms.events, ms.minute)
+        );
+        // Detect feats
+        for (const stat of matchStats) {
+          const feats = checkMatchFeats(stat.playerId, stat.playerName, stat);
+          for (const feat of feats) {
+            get().addToast(feat.message, 'goal');
+          }
+        }
+        set({ allMatchStats: [...get().allMatchStats, ...matchStats].slice(-2000) });
+      }
+    }
+
+    // 2. AI-to-AI trades (during regular season, before deadline)
+    if (currentSeasonState.phase === Phase.REGULAR_SEASON && !isTradeDeadlinePassed(result.league.currentRound, currentSeasonState.totalRounds)) {
+      const { teams: tradedTeams, trades } = simulateAITrades(result.league.teams, userTeamId, result.league.currentRound);
+      if (trades.length > 0) {
+        set({ league: { ...result.league, teams: tradedTeams } });
+        get().addToast(`🔄 Transfer: ${trades[0].player} (${trades[0].from} → ${trades[0].to})`, 'info');
+      }
+    }
+
+    // 3. Trade deadline notification
+    if (result.league.currentRound === currentSeasonState.tradeDeadlineRound) {
+      get().addToast('🔒 Trade deadline passed — no more transfers until next season.', 'warning');
+      set({ seasonState: { ...currentSeasonState, phase: Phase.AFTER_TRADE_DEADLINE } });
+    }
+
+    // 4. Phase transitions
+    if (shouldTransitionPhase(currentSeasonState)) {
+      const nextPhase = getNextPhase(currentSeasonState.phase);
+
+      if (nextPhase === Phase.PLAYOFFS) {
+        // Generate playoff bracket
+        const bracket = generatePlayoffBracket(result.league.standings);
+        set({ playoffBracket: bracket, seasonState: { ...currentSeasonState, phase: Phase.PLAYOFFS, playoffRound: 0 } });
+        get().addToast('🏆 Playoffs begin! Top 16 teams compete for the title.', 'goal');
+      } else if (nextPhase === Phase.DRAFT) {
+        // Generate draft prospects
+        const prospects = generateDraftProspects(20);
+        set({ seasonState: { ...currentSeasonState, phase: Phase.DRAFT, draftPick: 0 } });
+        get().addToast(`📋 Draft: ${prospects.length} prospects available. Your pick is based on final position.`, 'info');
+      } else if (nextPhase === Phase.FREE_AGENCY) {
+        // Generate free agent pool
+        const pool = generateFreeAgentPool(15);
+        set({ freeAgentPool: pool, seasonState: { ...currentSeasonState, phase: Phase.FREE_AGENCY, freeAgencyDay: 0 } });
+        get().addToast('🆓 Free agency period begins! Unsigned players available.', 'info');
+      } else if (nextPhase === Phase.RESIGN_PLAYERS) {
+        set({ seasonState: { ...currentSeasonState, phase: Phase.RESIGN_PLAYERS } });
+        get().addToast('📝 Re-signing period: negotiate contract extensions with your players.', 'info');
+      } else if (nextPhase === Phase.PRESEASON) {
+        // === SEASON END: Development + Awards + New Season ===
+        // Compute season awards
+        const awards = computeAwardsFromStats(get().allMatchStats);
+        set({ seasonAwards: awards });
+        if (awards.mvp) get().addToast(`🏅 Season MVP: ${awards.mvp.playerName} (${awards.mvp.rating} avg rating)`, 'goal');
+        if (awards.topScorer) get().addToast(`⚽ Golden Boot: ${awards.topScorer.playerName} (${awards.topScorer.goals} goals)`, 'goal');
+
+        // Player development (all teams)
+        const developedTeams = result.league.teams.map((team) => ({
+          ...team,
+          players: team.players.map((p) => developSeason(p)),
+        }));
+
+        // Career milestones
+        const userTeamFinal = developedTeams.find((t) => t.id === userTeamId);
+        if (userTeamFinal) {
+          for (const p of userTeamFinal.players) {
+            const milestones = checkCareerMilestones(p);
+            for (const m of milestones) get().addToast(m.message, 'goal');
+          }
+        }
+
+        // Minimum roster enforcement
+        if (userTeamFinal) {
+          const { needsPlayers, shortage } = ensureMinimumRoster(userTeamFinal);
+          if (needsPlayers) get().addToast(`⚠️ Squad too small! Need ${shortage} more player(s).`, 'warning');
+        }
+
+        // New season
+        const newSeasonNumber = currentSeasonState.seasonNumber + 1;
+        set({
+          league: { ...result.league, teams: developedTeams, currentRound: 0 },
+          seasonState: createSeasonState(newSeasonNumber, currentSeasonState.totalRounds),
+          allMatchStats: [],
+          playoffBracket: [],
+          freeAgentPool: [],
+          seasonComplete: false,
+        });
+        get().addToast(`🗓️ Season ${newSeasonNumber} begins! Preseason friendlies upcoming.`, 'success');
+      }
+    } else {
+      set({ seasonState: currentSeasonState });
     }
 
     // Autosave every 5 rounds (#11: debounced) + always at season boundaries
