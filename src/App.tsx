@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { useGameStore } from './store/gameStore';
 import { MatchControls } from './ui/MatchControls';
 import { ToastContainer } from './ui/ToastContainer';
@@ -177,6 +177,19 @@ export default function App() {
     onEscape: () => setShowShortcuts(false),
   });
 
+  // #20: Mobile touch gestures — swipe left/right to change tabs
+  const touchStartX = useRef(0);
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 60) {
+      const tabs = activeSection.tabs;
+      const idx = tabs.findIndex((t) => t.id === subTab);
+      if (dx < 0 && idx < tabs.length - 1) setSubTab(tabs[idx + 1].id);
+      if (dx > 0 && idx > 0) setSubTab(tabs[idx - 1].id);
+    }
+  };
+
   if (!league) return <div style={{ padding: 40, textAlign: 'center' }}>Loading...</div>;
 
   // Career setup: show team selection before game starts
@@ -301,7 +314,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Top nav: 10 sections */}
       <header style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
         <h1 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#4ade80', marginRight: 16 }}>⚽ Indie FM</h1>

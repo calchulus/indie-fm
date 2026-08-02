@@ -17,6 +17,39 @@ import { detectRivalry, RivalryInfo } from './match-systems-2';
 
 let eventId = 0;
 
+// #9: Event object pool — reuse objects to reduce GC pressure during 5400-tick sims
+const EVENT_POOL_SIZE = 256;
+const eventPool: MatchEvent[] = [];
+for (let i = 0; i < EVENT_POOL_SIZE; i++) {
+  eventPool.push({ id: '', tick: 0, minute: 0, type: 'pass', teamId: '', playerId: undefined, description: '', x: 0, y: 0, outcome: 'neutral' });
+}
+let poolIdx = 0;
+
+function createEvent(
+  tick: number,
+  type: MatchEvent['type'],
+  teamId: string,
+  description: string,
+  x: number,
+  y: number,
+  outcome: MatchEvent['outcome'],
+  playerId?: string,
+): MatchEvent {
+  const evt = eventPool[poolIdx % EVENT_POOL_SIZE];
+  poolIdx++;
+  evt.id = `evt_${++eventId}`;
+  evt.tick = tick;
+  evt.minute = Math.floor(tick / TICKS_PER_MINUTE) + 1;
+  evt.type = type;
+  evt.teamId = teamId;
+  evt.playerId = playerId;
+  evt.description = description;
+  evt.x = x;
+  evt.y = y;
+  evt.outcome = outcome;
+  return { ...evt }; // Return a copy so the pool entry can be reused
+}
+
 // Team strength cache — avoids recalculating expensive attribute math every tick.
 // Invalidated when tactics change (formation/mentality/pressing).
 interface StrengthCache {
@@ -69,30 +102,6 @@ function findAssister(events: MatchEvent[], teamId: string, currentTick: number)
     }
   }
   return undefined;
-}
-
-function createEvent(
-  tick: number,
-  type: MatchEvent['type'],
-  teamId: string,
-  description: string,
-  x: number,
-  y: number,
-  outcome: MatchEvent['outcome'],
-  playerId?: string,
-): MatchEvent {
-  return {
-    id: `evt_${++eventId}`,
-    tick,
-    minute: Math.floor(tick / TICKS_PER_MINUTE) + 1,
-    type,
-    teamId,
-    playerId,
-    description,
-    x,
-    y,
-    outcome,
-  };
 }
 
 function teamStrength(team: Team, phase: 'attack' | 'defend'): number {
