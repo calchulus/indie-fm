@@ -19,6 +19,7 @@ import { LANGUAGES, getLanguage, setLanguage, Language } from './i18n/translatio
 import { loadUIState, saveUIState } from './simulation/gameplay-ux';
 import { QuickTactics } from './ui/QuickTactics';
 import { PhaseTransitionModal, DraftScreen, FreeAgencyScreen, PlayoffScreen, SeasonSummaryScreen } from './ui/PhaseUI';
+import { EnhancedSquadView, NewsInbox, CSVImportPanel, SaveSlotManager, AchievementTracker } from './ui/GameFeatures';
 import { SECTION_ICONS } from './ui/Icons';
 
 const MatchView = lazy(() => import('./ui/MatchView').then((m) => ({ default: m.MatchView })));
@@ -46,7 +47,6 @@ const ContinentalCup = lazy(() => import('./ui/ContinentalCup').then((m) => ({ d
 const DevelopmentPanel = lazy(() => import('./ui/DevelopmentPanel').then((m) => ({ default: m.DevelopmentPanel })));
 const PlayerSearch = lazy(() => import('./ui/PlayerSearch').then((m) => ({ default: m.PlayerSearch })));
 const TacticPresets = lazy(() => import('./ui/TacticPresets').then((m) => ({ default: m.TacticPresets })));
-const NotificationInbox = lazy(() => import('./ui/NotificationInbox').then((m) => ({ default: m.NotificationInbox })));
 const MatchReplay = lazy(() => import('./ui/MatchReplay').then((m) => ({ default: m.MatchReplay })));
 const DataExport = lazy(() => import('./ui/DataExport').then((m) => ({ default: m.DataExport })));
 const BoardMeeting = lazy(() => import('./ui/BoardMeeting').then((m) => ({ default: m.BoardMeeting })));
@@ -78,7 +78,6 @@ const TrialSystem = lazy(() => import('./ui/TrialSystem').then((m) => ({ default
 const UndoRedo = lazy(() => import('./ui/UndoRedo').then((m) => ({ default: m.UndoRedo })));
 const MatchInsights = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.MatchInsights })));
 const SquadDepthChart = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.SquadDepthChart })));
-const AchievementsPanel = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.AchievementsPanel })));
 const FanSatisfactionPanel = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.FanSatisfactionPanel })));
 const FinancialDashboard = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.FinancialDashboard })));
 const CommentaryFeed = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.CommentaryFeed })));
@@ -111,7 +110,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'tactics', label: 'Formation' }, { id: 'presets', label: 'Presets' }, { id: 'designer', label: 'Designer' }, { id: 'advanced', label: 'Set Pieces' }, { id: 'undoredo', label: 'Undo/Redo' },
   ]},
   { id: 'squad', label: 'Squad', icon: '👥', tabs: [
-    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' }, { id: 'medical', label: 'Medical' }, { id: 'skills', label: 'Skills' },
+    { id: 'squad', label: 'Players' }, { id: 'squadview', label: 'Squad Card' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' }, { id: 'medical', label: 'Medical' }, { id: 'skills', label: 'Skills' },
   ]},
   { id: 'transfers', label: 'Transfers', icon: '💰', tabs: [
     { id: 'transfers', label: 'Market' }, { id: 'negotiate', label: 'Negotiate' }, { id: 'transferhistory', label: 'History' }, { id: 'deadline', label: 'Deadline' }, { id: 'rumours', label: 'Rumours' }, { id: 'scouting', label: 'Scouting' }, { id: 'scouts', label: 'Scouts' }, { id: 'report', label: 'Report' }, { id: 'search', label: 'Search' }, { id: 'youth', label: 'Youth' }, { id: 'loans', label: 'Loans' }, { id: 'freeagents', label: 'Free Agents' }, { id: 'trials', label: 'Trials' },
@@ -129,7 +128,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'profile', label: 'Manager' }, { id: 'create', label: 'Create' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
   ]},
   { id: 'system', label: 'System', icon: '⚙️', tabs: [
-    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'share', label: 'Share' }, { id: 'settings', label: 'Settings' },
+    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'slots', label: 'Slots' }, { id: 'import', label: 'Import' }, { id: 'share', label: 'Share' }, { id: 'settings', label: 'Settings' },
   ]},
 ];
 
@@ -296,6 +295,7 @@ export default function App() {
       case 'depth': return <SquadDepthChart />;
       case 'medical': return <MedicalCenter />;
       case 'skills': return <SkillTreePanel />;
+      case 'squadview': return <EnhancedSquadView />;
       case 'transfers': return <Suspense fallback={<TabFallback />}><TransferCenter /></Suspense>;
       case 'negotiate': return <TransferNegotiation />;
       case 'transferhistory': return <TransferHistory />;
@@ -321,7 +321,7 @@ export default function App() {
       case 'meeting': return <BoardMeeting />;
       case 'vision': return <ClubVision />;
       case 'media': return <Suspense fallback={<TabFallback />}><MediaCenter /></Suspense>;
-      case 'inbox': return <NotificationInbox />;
+      case 'inbox': return <NewsInbox />;
       case 'cups': return <Suspense fallback={<TabFallback />}><Competitions /></Suspense>;
       case 'bracket': return <CupBracket />;
       case 'playoffs': return <PlayoffScreen />;
@@ -337,10 +337,12 @@ export default function App() {
       case 'compare': return <PlayerComparison />;
       case 'data': return <Suspense fallback={<TabFallback />}><DataHub /></Suspense>;
       case 'export': return <DataExport />;
-      case 'achievements': return <AchievementsPanel />;
+      case 'achievements': return <AchievementTracker />;
       case 'modes': return <Suspense fallback={<TabFallback />}><GameModes /></Suspense>;
       case 'mods': return <Suspense fallback={<TabFallback />}><ModManager /></Suspense>;
       case 'save': return <Suspense fallback={<TabFallback />}><SaveLoadPanel /></Suspense>;
+      case 'slots': return <SaveSlotManager />;
+      case 'import': return <CSVImportPanel />;
       case 'share': return <SharePanel />;
       case 'settings': return <SettingsPanel />;
       default: return <TabFallback />;
