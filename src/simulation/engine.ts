@@ -59,6 +59,18 @@ export function getMatchRivalry(): RivalryInfo {
   return matchRivalry;
 }
 
+// Find the assister: most recent successful pass by the same team within last 3 ticks
+function findAssister(events: MatchEvent[], teamId: string, currentTick: number): string | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const evt = events[i];
+    if (currentTick - evt.tick > 3) break;
+    if (evt.teamId === teamId && evt.type === 'pass' && evt.outcome === 'success' && evt.playerId) {
+      return evt.playerId;
+    }
+  }
+  return undefined;
+}
+
 function createEvent(
   tick: number,
   type: MatchEvent['type'],
@@ -349,6 +361,20 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   const actionChance = 0.03 * tempoMod;
   const weatherDrainMod = getWeatherEffects(weather).staminaDrainMod;
 
+  // Pressing trap: high press can force errors in the attacking team's defensive third
+  const pressingIntensity = defendingTeam.tactics.pressing;
+  const ballInAttackingDefThird = isHomePossession ? newState.ballPosition.x < 30 : newState.ballPosition.x > 70;
+  if (ballInAttackingDefThird && pressingIntensity === 'high' && Math.random() < 0.04 * (newState.minute > 70 ? 0.5 : 1)) {
+    const errorPlayer = pickBallCarrier(attackingTeam, 'defense');
+    newState.events = [...newState.events, createEvent(
+      newState.tick, 'tackle', defendingTeam.id,
+      `${defendingTeam.name} force a mistake! ${errorPlayer.name} gives the ball away under pressure`,
+      newState.ballPosition.x, newState.ballPosition.y, 'success',
+    )];
+    movePlayersTowardFormation(newState, home, away, isHomePossession);
+    return newState;
+  }
+
   // Ball follows possession every tick — lerp toward attacking team's forward zone
   const ballTargetX = isHomePossession
     ? 50 + Math.random() * 40
@@ -458,9 +484,12 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
       } else {
         if (isHomePossession) newState.homeScore++;
         else newState.awayScore++;
+        const assisterId = findAssister(newState.events, attackingTeam.id, newState.tick);
+        const assister = assisterId ? attackingTeam.players.find((p) => p.id === assisterId) : undefined;
+        const goalDesc = assister ? `${getCommentary('goal', shooter.name)} (assist: ${assister.name})` : getCommentary('goal', shooter.name);
         newState.events = [...newState.events, createEvent(
           newState.tick, 'goal', attackingTeam.id,
-          getCommentary('goal', shooter.name),
+          goalDesc,
           shotX, shotY, 'success', shooter.id,
         )];
         if (varReview) {
