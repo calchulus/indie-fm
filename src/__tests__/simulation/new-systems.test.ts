@@ -50,14 +50,16 @@ describe('Match ratings (#7)', () => {
 describe('Adaptive AI (#8)', () => {
   it('losing team goes attacking after 60 min', () => {
     const team = generateTeam(0, 65);
-    const result = computeAIAdaptation(team, -2, 70);
+    const balancedTeam = { ...team, tactics: { ...team.tactics, mentality: 'balanced' as const } };
+    const result = computeAIAdaptation(balancedTeam, -2, 70);
     expect(result).not.toBeNull();
     expect(result!.mentalityShift).toBe('attacking');
   });
 
   it('winning team goes defensive late', () => {
     const team = generateTeam(0, 65);
-    const result = computeAIAdaptation(team, 2, 75);
+    const attackingTeam = { ...team, tactics: { ...team.tactics, mentality: 'attacking' as const } };
+    const result = computeAIAdaptation(attackingTeam, 2, 75);
     expect(result).not.toBeNull();
     expect(result!.mentalityShift).toBe('defensive');
   });
