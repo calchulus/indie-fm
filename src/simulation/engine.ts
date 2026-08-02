@@ -233,8 +233,32 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   if (newState.status === 'extra_time' && newState.tick > 90 * TICKS_PER_MINUTE + 30 * TICKS_PER_MINUTE) {
     if (newState.homeScore === newState.awayScore) {
       newState.status = 'penalties';
-      const homePens = 3 + Math.floor(Math.random() * 3);
-      const awayPens = 3 + Math.floor(Math.random() * 3);
+      // Proper penalty shootout: 5 kicks each, sudden death if tied
+      const homeTakers = home.players.slice(0, 11).sort((a, b) => b.attributes.penaltyTaking - a.attributes.penaltyTaking);
+      const awayTakers = away.players.slice(0, 11).sort((a, b) => b.attributes.penaltyTaking - a.attributes.penaltyTaking);
+      const homeGK = home.players.find((p) => p.position === 'GK');
+      const awayGK = away.players.find((p) => p.position === 'GK');
+
+      let homePens = 0;
+      let awayPens = 0;
+      const maxKicks = 8; // 5 regular + 3 sudden death max
+      for (let i = 0; i < maxKicks; i++) {
+        // Home kick
+        const homeTaker = homeTakers[i % homeTakers.length];
+        const homeScoreChance = 0.65 + (homeTaker.attributes.penaltyTaking / 20) * 0.2 + (homeTaker.attributes.composure / 20) * 0.1;
+        const awaySaveChance = awayGK ? (awayGK.attributes.reflexes / 20) * 0.25 : 0.1;
+        if (Math.random() < homeScoreChance - awaySaveChance) homePens++;
+
+        // Away kick
+        const awayTaker = awayTakers[i % awayTakers.length];
+        const awayScoreChance = 0.65 + (awayTaker.attributes.penaltyTaking / 20) * 0.2 + (awayTaker.attributes.composure / 20) * 0.1;
+        const homeSaveChance = homeGK ? (homeGK.attributes.reflexes / 20) * 0.25 : 0.1;
+        if (Math.random() < awayScoreChance - homeSaveChance) awayPens++;
+
+        // Check if decided after 5 kicks or in sudden death
+        if (i >= 4 && homePens !== awayPens) break;
+      }
+
       const homeWins = homePens > awayPens;
       newState.events = [...newState.events, createEvent(newState.tick, 'full_time', homeWins ? home.id : away.id, `Penalties: ${homePens}-${awayPens}. ${homeWins ? home.name : away.name} win!`, PITCH_LENGTH / 2, PITCH_WIDTH / 2, 'neutral')];
       newState.status = 'full_time';
