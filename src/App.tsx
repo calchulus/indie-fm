@@ -148,6 +148,11 @@ export default function App() {
         case '2': setSimSpeed(2); break;
         case '3': setSimSpeed(4); break;
         case '4': setSimSpeed(8); break;
+        // #13: Match-specific shortcuts
+        case 'm': setSection('match'); setSubTab('match'); break;
+        case 't': setSection('tactics'); setSubTab('tactics'); break;
+        case 's': setSection('squad'); setSubTab('squad'); break;
+        case '?': setShowShortcuts(true); break;
       }
     };
     window.addEventListener('keydown', handler);

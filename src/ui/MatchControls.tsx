@@ -131,10 +131,20 @@ export function MatchControls() {
             Full Time: {matchState.homeScore} - {matchState.awayScore}
           </span>
           <button style={btnStyle} onClick={handleQuickMatch}>New Match</button>
+          <button style={{ ...btnStyle, background: 'rgba(74,222,128,0.2)' }} onClick={() => useGameStore.getState().advanceRound()}>
+            ➡️ Next Round
+          </button>
         </div>
       )}
 
-      {matchState && (
+      {matchState && status !== 'full_time' && (
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: '#888' }}>
+          ⏱ {matchState.minute}' | {status === 'first_half' ? '1st Half' : status === 'second_half' ? '2nd Half' : status}
+          {isSimulating && simSpeed > 1 && <span style={{ color: '#60a5fa' }}> | {simSpeed}x (~{Math.ceil((90 - matchState.minute) / simSpeed)}s left)</span>}
+        </div>
+      )}
+
+      {matchState && status === 'full_time' && (
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#888' }}>
           Shots: {matchState.shots.home}-{matchState.shots.away} |
           On Target: {matchState.shotsOnTarget.home}-{matchState.shotsOnTarget.away} |
