@@ -25,13 +25,29 @@ export function createStadium(scene: THREE.Scene, config: StadiumConfig): THREE.
   ];
 
   for (const side of sides) {
-    const standGeo = new THREE.BoxGeometry(side.length, standHeight, standDepth);
-    const standMat = new THREE.MeshLambertMaterial({ color: standColor });
-    const stand = new THREE.Mesh(standGeo, standMat);
-    stand.position.set(side.x, standHeight / 2 - 2, side.z);
-    stand.rotation.y = side.rotY;
-    stadium.add(stand);
+    // Tiered stands (each tier is a separate box, stepped back and up)
+    for (let tier = 0; tier < config.tiers; tier++) {
+      const tierHeight = 12;
+      const tierDepth = standDepth / config.tiers;
+      const tierY = tier * tierHeight + tierHeight / 2 - 2;
+      const tierZOffset = tier * (tierDepth + 1);
 
+      const standGeo = new THREE.BoxGeometry(side.length, tierHeight, tierDepth);
+      const standMat = new THREE.MeshLambertMaterial({ color: standColor });
+      const stand = new THREE.Mesh(standGeo, standMat);
+
+      if (side.rotY === 0) {
+        const zDir = side.z < PITCH_WIDTH / 2 ? -1 : 1;
+        stand.position.set(side.x, tierY, side.z + zDir * tierZOffset);
+      } else {
+        const xDir = side.x < PITCH_LENGTH / 2 ? -1 : 1;
+        stand.position.set(side.x + xDir * tierZOffset, tierY, side.z);
+        stand.rotation.y = side.rotY;
+      }
+      stadium.add(stand);
+    }
+
+    // Seat face (visible colored surface)
     const seatGeo = new THREE.BoxGeometry(side.length - 2, standHeight - 2, 2);
     const seatMat = new THREE.MeshLambertMaterial({ color: seatColor });
     const seats = new THREE.Mesh(seatGeo, seatMat);
@@ -44,6 +60,43 @@ export function createStadium(scene: THREE.Scene, config: StadiumConfig): THREE.
     }
     stadium.add(seats);
   }
+
+  // --- CROWD: InstancedMesh of tiny colored boxes in the stands ---
+  const crowdCount = Math.min(config.capacity / 5, 4000); // Cap at 4000 for performance
+  const crowdGeo = new THREE.BoxGeometry(0.6, 0.9, 0.4);
+  const crowdMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+  const crowd = new THREE.InstancedMesh(crowdGeo, crowdMat, crowdCount);
+  const dummy = new THREE.Object3D();
+  const crowdColors = [
+    new THREE.Color(0xe63946), new THREE.Color(0x457b9d), new THREE.Color(0xf4a261),
+    new THREE.Color(0x2a9d8f), new THREE.Color(0xe9c46a), new THREE.Color(0x264653),
+    new THREE.Color(0xffffff), new THREE.Color(0xaaaaaa), new THREE.Color(0x6a4c93),
+  ];
+
+  let crowdIdx = 0;
+  for (const side of sides) {
+    const fansPerSide = Math.floor(crowdCount / 4);
+    for (let i = 0; i < fansPerSide && crowdIdx < crowdCount; i++) {
+      const along = (Math.random() - 0.5) * (side.length - 4);
+      const tier = Math.floor(Math.random() * config.tiers);
+      const height = tier * 12 + 2 + Math.random() * 8;
+      const depth = (Math.random() - 0.5) * (standDepth - 4);
+
+      if (side.rotY === 0) {
+        dummy.position.set(side.x + along, height, side.z + depth);
+      } else {
+        dummy.position.set(side.x + depth, height, side.z + along);
+      }
+      dummy.rotation.y = side.rotY + (Math.random() - 0.5) * 0.3;
+      dummy.updateMatrix();
+      crowd.setMatrixAt(crowdIdx, dummy.matrix);
+      crowd.setColorAt(crowdIdx, crowdColors[Math.floor(Math.random() * crowdColors.length)]);
+      crowdIdx++;
+    }
+  }
+  crowd.instanceMatrix.needsUpdate = true;
+  if (crowd.instanceColor) crowd.instanceColor.needsUpdate = true;
+  stadium.add(crowd);
 
   if (config.cornerStands) {
     const corners = [

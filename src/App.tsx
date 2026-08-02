@@ -17,6 +17,7 @@ import { HelpGuide, FirstTimeGuide } from './ui/HelpGuide';
 import { useKeyboardNav, KeyboardShortcutsModal } from './ui/KeyboardNav';
 import { LANGUAGES, getLanguage, setLanguage, Language } from './i18n/translations';
 import { loadUIState, saveUIState } from './simulation/gameplay-ux';
+import { QuickTactics } from './ui/QuickTactics';
 import { SECTION_ICONS } from './ui/Icons';
 
 const MatchView = lazy(() => import('./ui/MatchView').then((m) => ({ default: m.MatchView })));
@@ -89,6 +90,8 @@ const ClubCustomizer = lazy(() => import('./ui/CustomizationUI').then((m) => ({ 
 const SkillTreePanel = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.SkillTreePanel })));
 const ManagerProfileEditor = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.ManagerProfileEditor })));
 const SharePanel = lazy(() => import('./ui/SharePanel').then((m) => ({ default: m.SharePanel })));
+const LiveRatings = lazy(() => import('./ui/PlayerRatings').then((m) => ({ default: m.LiveRatings })));
+const MatchReportCard = lazy(() => import('./ui/PlayerRatings').then((m) => ({ default: m.MatchReportCard })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -98,7 +101,7 @@ interface SubTab { id: string; label: string; }
 
 const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[] }> = [
   { id: 'match', label: 'Match', icon: '⚽', tabs: [
-    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' }, { id: 'commentary', label: 'Commentary' }, { id: 'matchpreview', label: 'Preview' },
+    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' }, { id: 'commentary', label: 'Commentary' }, { id: 'ratings', label: 'Ratings' }, { id: 'reportcard', label: 'Report' }, { id: 'matchpreview', label: 'Preview' },
   ]},
   { id: 'league', label: 'League', icon: '📊', tabs: [
     { id: 'fixtures', label: 'Fixtures' }, { id: 'table', label: 'Table' }, { id: 'stats', label: 'Stats' }, { id: 'totw', label: 'TOTW' }, { id: 'preview', label: 'Preview' },
@@ -234,6 +237,7 @@ export default function App() {
       case 'match':
         return (
           <>
+            <QuickTactics />
             <div style={{ flex: 1, position: 'relative' }}>
               {matchState ? (
                 matchState.status === 'pre_match' ? (
@@ -270,6 +274,8 @@ export default function App() {
       case 'analysis': return <TacticalAnalysis />;
       case 'insights': return <MatchInsights />;
       case 'commentary': return <CommentaryFeed />;
+      case 'ratings': return <LiveRatings />;
+      case 'reportcard': return <MatchReportCard />;
       case 'matchpreview': return <MatchPreviewPanel2 />;
       case 'fixtures': return <Suspense fallback={<TabFallback />}><FixtureList /></Suspense>;
       case 'table': return <Suspense fallback={<TabFallback />}><LeagueTable /></Suspense>;

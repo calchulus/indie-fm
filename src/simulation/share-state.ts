@@ -162,14 +162,31 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
-// Generate a share code for a URL (shorter, URL-safe)
-export function exportToURL(state: ShareableState): string {
+// Generate a share URL compatible with GitHub Pages (calchulus.github.io/indie-fm/?load=...)
+export function exportToURL(state: ShareableState): { url: string; tooLong: boolean } {
   const code = exportToCode(state);
-  return `${window.location.origin}${window.location.pathname}?load=${encodeURIComponent(code)}`;
+  const encoded = encodeURIComponent(code);
+  // Use current origin + pathname (works on localhost, GH Pages, custom domains)
+  const base = `${window.location.origin}${window.location.pathname}`;
+  const url = `${base}?load=${encoded}`;
+  // Warn if URL exceeds practical limits (~8000 chars for most browsers)
+  const tooLong = url.length > 8000;
+  return { url, tooLong };
 }
 
-// Parse a share code from URL params
-export function parseURLParams(): string | null {
+// Generate a compact share URL (scenario-only, no full state — always short)
+export function exportScenarioURL(scenarioId: string, teamId: string, round: number): string {
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return `${base}?scenario=${scenarioId}&team=${teamId}&round=${round}`;
+}
+
+// Parse a share code or scenario from URL params
+export function parseURLParams(): { loadCode?: string; scenario?: string; team?: string; round?: number } {
   const params = new URLSearchParams(window.location.search);
-  return params.get('load');
+  return {
+    loadCode: params.get('load') ?? undefined,
+    scenario: params.get('scenario') ?? undefined,
+    team: params.get('team') ?? undefined,
+    round: params.get('round') ? Number(params.get('round')) : undefined,
+  };
 }

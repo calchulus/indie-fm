@@ -96,23 +96,72 @@ export function FinancialDashboard() {
 }
 
 // --- Match Commentary Feed ---
+type CommentaryFilter = 'goals' | 'key' | 'all';
+
+const KEY_EVENTS = new Set(['goal', 'save', 'yellow_card', 'red_card', 'penalty', 'corner', 'free_kick']);
+const GOAL_EVENTS = new Set(['goal']);
+
 export function CommentaryFeed() {
   const { matchState, matchHome, matchAway } = useGameStore();
+  const [filter, setFilter] = useState<CommentaryFilter>('key');
+
   if (!matchState || !matchHome || !matchAway) return <div style={{ padding: 16, color: '#888' }}>No match in progress.</div>;
 
-  const events = [...matchState.events].reverse().slice(0, 30);
+  const allEvents = [...matchState.events].reverse();
+  const events = allEvents.filter((evt) => {
+    if (filter === 'goals') return GOAL_EVENTS.has(evt.type);
+    if (filter === 'key') return KEY_EVENTS.has(evt.type);
+    return true;
+  }).slice(0, filter === 'all' ? 50 : 30);
+
   const teamName = (id: string) => id === matchHome.id ? matchHome.shortName : matchAway.shortName;
 
+  const filterBtn = (f: CommentaryFilter): React.CSSProperties => ({
+    padding: '3px 10px', fontSize: 11, borderRadius: 4, cursor: 'pointer',
+    background: filter === f ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.05)',
+    border: filter === f ? '1px solid #60a5fa' : '1px solid rgba(255,255,255,0.1)',
+    color: filter === f ? '#93c5fd' : '#888',
+  });
+
+  const eventColor = (type: string): string => {
+    if (type === 'goal') return '#4ade80';
+    if (type === 'yellow_card') return '#facc15';
+    if (type === 'red_card') return '#f87171';
+    if (type === 'save') return '#60a5fa';
+    if (type === 'corner' || type === 'free_kick') return '#c084fc';
+    return '#aaa';
+  };
+
   return (
-    <div style={{ padding: '8px 12px', overflowY: 'auto', height: '100%', fontSize: 12 }}>
-      <h4 style={{ margin: '0 0 8px', fontSize: 13 }}>🎙️ Commentary</h4>
-      {events.map((evt) => (
-        <div key={evt.id} style={{ padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', color: evt.type === 'goal' ? '#4ade80' : evt.type === 'yellow_card' || evt.type === 'red_card' ? '#facc15' : '#aaa' }}>
-          <span style={{ color: '#666', marginRight: 6 }}>{evt.minute}'</span>
-          <span style={{ color: '#60a5fa', marginRight: 4 }}>[{teamName(evt.teamId)}]</span>
-          {evt.description}
+    <div style={{ padding: '8px 12px', overflowY: 'auto', height: '100%', fontSize: 12, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <h4 style={{ margin: 0, fontSize: 13 }}>🎙️ Commentary</h4>
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button style={filterBtn('goals')} onClick={() => setFilter('goals')}>⚽ Goals</button>
+          <button style={filterBtn('key')} onClick={() => setFilter('key')}>⭐ Key</button>
+          <button style={filterBtn('all')} onClick={() => setFilter('all')}>📋 All</button>
         </div>
-      ))}
+      </div>
+
+      {events.length === 0 && (
+        <div style={{ color: '#666', textAlign: 'center', padding: 20 }}>
+          {filter === 'goals' ? 'No goals yet.' : filter === 'key' ? 'No key events yet.' : 'No events yet.'}
+        </div>
+      )}
+
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        {events.map((evt) => (
+          <div key={evt.id} style={{ padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', color: eventColor(evt.type), display: 'flex', gap: 6 }}>
+            <span style={{ color: '#555', minWidth: 28, flexShrink: 0 }}>{evt.minute}'</span>
+            <span style={{ color: '#60a5fa', minWidth: 36, flexShrink: 0 }}>[{teamName(evt.teamId)}]</span>
+            <span style={{ flex: 1 }}>{evt.description}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 6, fontSize: 10, color: '#555', textAlign: 'center' }}>
+        {filter === 'goals' ? `${events.length} goal(s)` : filter === 'key' ? `${events.length} key event(s)` : `${events.length} event(s)`} — {matchState.minute}'
+      </div>
     </div>
   );
 }

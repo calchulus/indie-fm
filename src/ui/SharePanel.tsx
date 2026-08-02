@@ -37,7 +37,11 @@ export function SharePanel() {
   };
 
   const handleExportURL = () => {
-    const url = exportToURL(buildState());
+    const { url, tooLong } = exportToURL(buildState());
+    if (tooLong) {
+      addToast('⚠️ Full state too large for URL. Use "Copy Code" or "Download File" instead.', 'warning');
+      return;
+    }
     navigator.clipboard?.writeText(url).then(() => {
       addToast('🔗 Share URL copied to clipboard!', 'success');
     }).catch(() => {

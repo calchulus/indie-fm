@@ -191,8 +191,10 @@ export class PitchScene {
   private onResize = (): void => {
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
+    if (width === 0 || height === 0) return; // Container not yet laid out
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
     this.renderer.setSize(width, height);
   };
 
