@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { useMatchState, useMatchHome, useMatchAway, useUserTeamId } from '../store/selectors';
 import { getSuggestedSubs, TouchlineShout, getShoutEffect, getHalfTimeTalkOptions } from '../simulation/inmatch';
 
 export function InMatchPanel() {
-  const { matchState, matchHome, matchAway, userTeamId, applyShout, applySub } = useGameStore();
+  const matchState = useMatchState();
+  const matchHome = useMatchHome();
+  const matchAway = useMatchAway();
+  const userTeamId = useUserTeamId();
+  const applyShout = useGameStore((s) => s.applyShout);
+  const applySub = useGameStore((s) => s.applySub);
   const [subsUsed, setSubsUsed] = useState(0);
   const [shoutsUsed, setShoutsUsed] = useState(0);
 

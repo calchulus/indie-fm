@@ -30,6 +30,9 @@ import { shouldSackManager } from '../simulation/systems';
 import { generateStaffCandidates, StaffCandidate } from '../simulation/systems-2';
 import { generateFreeAgents, YouthProspect } from '../simulation/systems-3';
 import { saveToLocalStorage, loadFromLocalStorage } from '../simulation/code-quality';
+import { generatePressQuestions, computeFanSatisfaction, checkLegendStatus } from '../simulation/features-2';
+import { saveGame, loadGame, SaveSlot } from '../simulation/idb-storage';
+import { simulateBatchSync } from '../simulation/match-worker';
 
 export interface Toast {
   id: string;
@@ -174,9 +177,17 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   resumeFromAutosave: async () => {
     try {
-      const data = await loadAutosave();
+      // Try IndexedDB first (primary), fall back to localStorage
+      let data: any = null;
+      try {
+        const idbSlot = await loadGame('autosave');
+        if (idbSlot?.data) data = idbSlot.data;
+      } catch { /* IDB unavailable */ }
+      if (!data || !data.league) {
+        data = await loadAutosave();
+      }
       if (!data || !data.league) return false;
-      const userTeam = data.league.teams.find((t) => t.id === data.userTeamId);
+      const userTeam = data.league.teams.find((t: any) => t.id === data.userTeamId);
       set({
         league: data.league,
         userTeamId: data.userTeamId,
@@ -283,7 +294,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   simMinutes: (minutes: number) => {
     const { matchState, matchHome, matchAway, matchWeather } = get();
     if (!matchState || !matchHome || !matchAway) return;
-    const newState = simulateMinutes(matchState, matchHome, matchAway, minutes, matchWeather as WeatherCondition);
+    // Use batch sync for large simulations (includes event capping)
+    const newState = minutes > 5
+      ? simulateBatchSync(matchState, matchHome, matchAway, minutes * 60, (matchWeather as WeatherCondition) ?? 'clear')
+      : simulateMinutes(matchState, matchHome, matchAway, minutes, matchWeather as WeatherCondition);
     set({ matchState: newState });
     if (newState.status === 'full_time') set({ isSimulating: false });
   },
@@ -426,6 +440,50 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (result.userMatchResult) {
       const r = result.userMatchResult;
       get().addToast(`FT: ${r.homeGoals}-${r.awayGoals}`, r.homeGoals !== r.awayGoals ? 'success' : 'info');
+
+      // Press conference questions generated after match
+      const won = r.homeGoals !== r.awayGoals;
+      const pressQs = generatePressQuestions('post_match', won ? 'win' : 'draw');
+      if (pressQs.length > 0) {
+        const newsItems: NewsItem[] = pressQs.map((q) => ({
+          id: `press_${q.id}_${result.league.currentRound}`,
+          round: result.league.currentRound,
+          category: 'media' as const,
+          headline: `Press: "${q.question}"`,
+          body: q.answers.map((a) => `• ${a.text}`).join('\n'),
+          importance: 'low' as const,
+          read: false,
+        }));
+        set({ news: [...newsItems, ...get().news].slice(0, 50) });
+      }
+    }
+
+    // Fan satisfaction update based on recent form
+    const userTeamForFans = result.league.teams.find((t) => t.id === userTeamId);
+    if (userTeamForFans) {
+      const sortedForFans = [...result.league.standings].sort((a, b) => b.points - a.points);
+      const posForFans = sortedForFans.findIndex((s) => s.teamId === userTeamId) + 1;
+      const recentResults = get().lastRoundResults.slice(0, 5).map((r) => {
+        const isHome = r.homeTeamId === userTeamId;
+        const gf = isHome ? r.homeGoals : r.awayGoals;
+        const ga = isHome ? r.awayGoals : r.homeGoals;
+        return gf > ga ? 'W' as const : gf === ga ? 'D' as const : 'L' as const;
+      });
+      const fanSat = computeFanSatisfaction(recentResults, posForFans, result.league.teams.length, 0, 50, 0);
+      if (fanSat.overall < 25) {
+        get().addToast(`😡 Fans are ${fanSat.label.toLowerCase()} (${fanSat.overall}/100). Results must improve.`, 'warning');
+      }
+    }
+
+    // Club legend check
+    if (userTeamForFans && result.league.currentRound % 5 === 0) {
+      for (const p of userTeamForFans.players) {
+        const legend = checkLegendStatus(p);
+        if (legend) {
+          get().addToast(`🏛️ ${legend.playerName} is now a club legend! ${legend.legacy}`, 'goal');
+          break; // one legend toast per check
+        }
+      }
     }
 
     // Development milestones + market value fluctuation
@@ -555,10 +613,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    // Autosave after every round
+    // Autosave after every round (IndexedDB primary, localStorage fallback)
     const finalState = get();
     if (finalState.league && finalState.userTeamId) {
-      autosave({
+      const saveData = {
         version: 1,
         savedAt: Date.now(),
         league: finalState.league,
@@ -572,7 +630,20 @@ export const useGameStore = create<GameState>((set, get) => ({
         seasonHistory: finalState.seasonHistory,
         clubRecords: finalState.clubRecords,
         news: finalState.news,
-      }).catch(() => { /* silent fail — autosave is best-effort */ });
+      };
+      // Primary: IndexedDB (async, larger capacity)
+      const slot: SaveSlot = {
+        id: 'autosave',
+        name: `Season ${finalState.seasonNumber} Round ${finalState.league.currentRound}`,
+        timestamp: Date.now(),
+        seasonNumber: finalState.seasonNumber,
+        round: finalState.league.currentRound,
+        teamName: finalState.league.teams.find((t) => t.id === finalState.userTeamId)?.name ?? 'Unknown',
+        data: saveData,
+      };
+      saveGame(slot).catch(() => {});
+      // Fallback: localStorage (sync, smaller)
+      autosave(saveData).catch(() => { /* silent fail — autosave is best-effort */ });
     }
   },
 
