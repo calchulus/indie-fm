@@ -88,6 +88,7 @@ const TrainingSchedule = lazy(() => import('./ui/MediumFeaturesUI').then((m) => 
 const ClubCustomizer = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.ClubCustomizer })));
 const SkillTreePanel = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.SkillTreePanel })));
 const ManagerProfileEditor = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.ManagerProfileEditor })));
+const SharePanel = lazy(() => import('./ui/SharePanel').then((m) => ({ default: m.SharePanel })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -124,7 +125,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'profile', label: 'Manager' }, { id: 'create', label: 'Create' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
   ]},
   { id: 'system', label: 'System', icon: '⚙️', tabs: [
-    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'settings', label: 'Settings' },
+    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'share', label: 'Share' }, { id: 'settings', label: 'Settings' },
   ]},
 ];
 
@@ -329,6 +330,7 @@ export default function App() {
       case 'modes': return <Suspense fallback={<TabFallback />}><GameModes /></Suspense>;
       case 'mods': return <Suspense fallback={<TabFallback />}><ModManager /></Suspense>;
       case 'save': return <Suspense fallback={<TabFallback />}><SaveLoadPanel /></Suspense>;
+      case 'share': return <SharePanel />;
       case 'settings': return <SettingsPanel />;
       default: return <TabFallback />;
     }
