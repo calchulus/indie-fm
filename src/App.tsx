@@ -85,6 +85,9 @@ const MatchPreviewPanel2 = lazy(() => import('./ui/MediumFeaturesUI').then((m) =
 const MedicalCenter = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.MedicalCenter })));
 const CupBracket = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.CupBracket })));
 const TrainingSchedule = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.TrainingSchedule })));
+const ClubCustomizer = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.ClubCustomizer })));
+const SkillTreePanel = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.SkillTreePanel })));
+const ManagerProfileEditor = lazy(() => import('./ui/CustomizationUI').then((m) => ({ default: m.ManagerProfileEditor })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -103,13 +106,13 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'tactics', label: 'Formation' }, { id: 'presets', label: 'Presets' }, { id: 'designer', label: 'Designer' }, { id: 'advanced', label: 'Set Pieces' }, { id: 'undoredo', label: 'Undo/Redo' },
   ]},
   { id: 'squad', label: 'Squad', icon: '👥', tabs: [
-    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' }, { id: 'medical', label: 'Medical' },
+    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' }, { id: 'medical', label: 'Medical' }, { id: 'skills', label: 'Skills' },
   ]},
   { id: 'transfers', label: 'Transfers', icon: '💰', tabs: [
     { id: 'transfers', label: 'Market' }, { id: 'negotiate', label: 'Negotiate' }, { id: 'transferhistory', label: 'History' }, { id: 'deadline', label: 'Deadline' }, { id: 'rumours', label: 'Rumours' }, { id: 'scouting', label: 'Scouting' }, { id: 'scouts', label: 'Scouts' }, { id: 'report', label: 'Report' }, { id: 'search', label: 'Search' }, { id: 'youth', label: 'Youth' }, { id: 'loans', label: 'Loans' }, { id: 'freeagents', label: 'Free Agents' }, { id: 'trials', label: 'Trials' },
   ]},
   { id: 'club', label: 'Club', icon: '🏢', tabs: [
-    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'schedule', label: 'Schedule' }, { id: 'finances', label: 'Finances' }, { id: 'dashboard', label: 'P&L' }, { id: 'fans', label: 'Fans' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
+    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'schedule', label: 'Schedule' }, { id: 'finances', label: 'Finances' }, { id: 'dashboard', label: 'P&L' }, { id: 'fans', label: 'Fans' }, { id: 'customize', label: 'Customize' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
   ]},
   { id: 'media', label: 'Media', icon: '📰', tabs: [
     { id: 'media', label: 'Press' }, { id: 'inbox', label: 'Inbox' },
@@ -118,7 +121,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'cups', label: 'Cups' }, { id: 'bracket', label: 'Bracket' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
   ]},
   { id: 'profile', label: 'Profile', icon: '👤', tabs: [
-    { id: 'profile', label: 'Manager' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
+    { id: 'profile', label: 'Manager' }, { id: 'create', label: 'Create' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
   ]},
   { id: 'system', label: 'System', icon: '⚙️', tabs: [
     { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'settings', label: 'Settings' },
@@ -284,6 +287,7 @@ export default function App() {
       case 'morale': return <MoralePanel />;
       case 'depth': return <SquadDepthChart />;
       case 'medical': return <MedicalCenter />;
+      case 'skills': return <SkillTreePanel />;
       case 'transfers': return <Suspense fallback={<TabFallback />}><TransferCenter /></Suspense>;
       case 'negotiate': return <TransferNegotiation />;
       case 'transferhistory': return <TransferHistory />;
@@ -303,6 +307,7 @@ export default function App() {
       case 'finances': return <FinancialReport />;
       case 'dashboard': return <FinancialDashboard />;
       case 'fans': return <FanSatisfactionPanel />;
+      case 'customize': return <ClubCustomizer />;
       case 'schedule': return <TrainingSchedule />;
       case 'board': return <Suspense fallback={<TabFallback />}><BoardFinances /></Suspense>;
       case 'meeting': return <BoardMeeting />;
@@ -314,6 +319,7 @@ export default function App() {
       case 'continental': return <ContinentalCup />;
       case 'international': return <InternationalManagement />;
       case 'profile': return <ManagerProfile />;
+      case 'create': return <ManagerProfileEditor />;
       case 'history': return <div style={{ display: 'flex', height: '100%' }}><div style={{ flex: 1, overflow: 'auto' }}><SeasonHistory /></div><div style={{ flex: 1, overflow: 'auto', borderLeft: '1px solid rgba(255,255,255,0.1)' }}><SeasonAwardsScreen /></div></div>;
       case 'review': return <SeasonReviewScreen />;
       case 'compare': return <PlayerComparison />;
