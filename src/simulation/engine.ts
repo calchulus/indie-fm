@@ -11,7 +11,7 @@ import { WeatherCondition, applyWeatherToPass, applyWeatherToShot, applyWeatherT
 import { MomentumState, getMomentumMultiplier } from './momentum';
 import { getFatigueMultiplier } from './fatigue';
 import { computePassDifficulty, computeGKDecision } from './decision-ai';
-import { rollInjury } from './setpieces';
+import { rollInjury, computeSetPieceGoalChance } from './setpieces';
 import { advanceChain, createPossessionChain, detectCounterAttack, tickCounter, getCounterAttackBonus, PossessionChain, CounterAttackState } from './match-context';
 import { detectRivalry, RivalryInfo } from './match-systems-2';
 
@@ -607,17 +607,20 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
       `Corner kick for ${attackingTeam.name}`,
       x, y, 'neutral',
     )];
-    // Set piece routine: corner has a chance to produce a shot
-    if (Math.random() < 0.25) {
-      const header = pickBallCarrier(attackingTeam, 'attack');
-      const headerChance = (header.attributes.heading / 20) * 0.3;
-      if (Math.random() < headerChance) {
+    // Set piece routine: use set piece system for realistic corner goal chance
+    const cornerTaker = [...attackingTeam.players.slice(0, 11)].sort((a, b) => (b.attributes.crossing + b.attributes.technique) - (a.attributes.crossing + a.attributes.technique))[0];
+    const bestHeaders = [...attackingTeam.players.slice(0, 11)].sort((a, b) => (b.attributes.heading + b.attributes.jumpingReach) - (a.attributes.heading + a.attributes.jumpingReach)).slice(0, 3);
+    const routine = { id: 'corner_auto', type: 'corner_right' as const, targetZone: 'near_post' as const, runners: bestHeaders.map((p) => ({ playerId: p.id, target: 'near_post' as const })), delivery: 'whipped' as const, takerId: cornerTaker?.id };
+    const { goalChance: spGoalChance, bestHeader } = computeSetPieceGoalChance(routine, attackingTeam, defendingTeam);
+    if (Math.random() < spGoalChance) {
+      const scorer = bestHeader ?? pickBallCarrier(attackingTeam, 'attack');
+      {
         if (isHomePossession) newState.homeScore++;
         else newState.awayScore++;
         newState.events = [...newState.events, createEvent(
           newState.tick, 'goal', attackingTeam.id,
-          `${header.name} heads in from the corner!`,
-          isHomePossession ? 95 : 10, 34, 'success', header.id,
+          `${scorer.name} heads in from the corner!`,
+          isHomePossession ? 95 : 10, 34, 'success', scorer.id,
         )];
       }
     }
