@@ -451,11 +451,14 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
     const shotX = isHomePossession ? 85 + Math.random() * 15 : 5 + Math.random() * 10;
     const shotY = 30 + Math.random() * 8;
     const traitShotBonus = computeTraitBonus(shooter, 'shot');
+    // Shot distance: closer to goal = higher chance. Distance from goal line (100 or 0)
+    const distFromGoal = isHomePossession ? 100 - shotX : shotX;
+    const distanceMod = distFromGoal < 8 ? 1.3 : distFromGoal < 12 ? 1.0 : distFromGoal < 18 ? 0.7 : 0.45;
     // Momentum + fatigue: consecutive attacks boost goal chance, tired players finish worse
     const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
     const shooterFitness = estimateFitness(shooter, newState.minute, weatherDrainMod);
     const fatigueMod = getFatigueMultiplier(shooterFitness);
-    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod * fatigueMod * (1 + chainBonus + counterBonus);
+    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod * fatigueMod * distanceMod * (1 + chainBonus + counterBonus);
     const { goalChance: traitGoalChance, onTarget: traitOnTarget } = applyShotTraits(baseGoalChance, 0.45, shooter);
     // Weather affects shot accuracy
     const onTargetChance = applyWeatherToShot(traitOnTarget, weather);
