@@ -7,6 +7,8 @@ import { updateFanSentiment, generateMatchNews, FanSentiment, NewsItem } from '.
 import { processMentoring, MentoringGroup } from './dynamics';
 import { StaffMember } from './staff';
 import { createDevelopmentArc, processDevelopment } from './development-arcs';
+import { getUnhappyPlayers, getPlayersNeedingRenewal } from './happiness';
+import { conductMidSeasonReview, checkRetirementDecisions, getRetirementFarewellText } from './season-systems-2';
 
 export interface RoundProcessingResult {
   league: League;
@@ -185,6 +187,42 @@ export function processRound(
     const awayTeam = league.teams.find((t) => t.id === userMatchResult.awayTeamId);
     if (homeTeam && awayTeam) {
       news.push(...generateMatchNews(league.currentRound, homeTeam, awayTeam, userMatchResult.homeGoals, userMatchResult.awayGoals));
+    }
+  }
+
+  // 15b. Player happiness warnings (unhappy players may request transfer)
+  const TOTAL_ROUNDS = 38;
+  if (userTeam) {
+    const unhappy = getUnhappyPlayers(userTeam, TOTAL_ROUNDS);
+    for (const u of unhappy.slice(0, 2)) {
+      const player = userTeam.players.find((p) => p.id === u.playerId);
+      if (player && u.riskLevel === 'high') {
+        news.push({ id: `unhappy_${player.id}_${league.currentRound}`, round: league.currentRound, category: 'transfer', headline: `${player.name} unhappy at the club`, body: `${player.name} (happiness: ${u.overall}/100) may request a transfer if conditions don't improve.`, importance: 'high', read: false });
+      }
+    }
+  }
+
+  // 15c. Mid-season board review (at the halfway point)
+  const midPoint = Math.floor(TOTAL_ROUNDS / 2);
+  if (league.currentRound === midPoint) {
+    const review = conductMidSeasonReview(userPosition, league.teams.length, 10, league.currentRound, TOTAL_ROUNDS, board.confidence);
+    news.push({ id: `midseason_${league.currentRound}`, round: league.currentRound, category: 'club', headline: 'Mid-Season Board Review', body: review.message, importance: review.onTrack ? 'low' : 'high', read: false });
+  }
+
+  // 15d. Contract expiry warnings (players with 1 year left)
+  if (userTeam) {
+    const expiring = getPlayersNeedingRenewal(userTeam, 2026);
+    for (const p of expiring.slice(0, 3)) {
+      news.push({ id: `contract_${p.id}_${league.currentRound}`, round: league.currentRound, category: 'transfer', headline: `${p.name}'s contract expiring`, body: `${p.name}'s contract expires in ${p.contractExpiry}. Consider offering a renewal.`, importance: 'medium', read: false });
+    }
+  }
+
+  // 15e. Retirement announcements (end of season only)
+  const isSeasonEnd = league.currentRound >= TOTAL_ROUNDS;
+  if (isSeasonEnd && userTeam) {
+    const retirements = checkRetirementDecisions(userTeam, true);
+    for (const r of retirements) {
+      news.push({ id: `retire_${r.player.id}_${league.currentRound}`, round: league.currentRound, category: 'transfer', headline: `${r.player.name} retires`, body: getRetirementFarewellText(r.player), importance: 'medium', read: false });
     }
   }
 
