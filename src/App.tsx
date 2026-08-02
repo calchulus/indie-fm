@@ -188,6 +188,8 @@ export default function App() {
     setSection(s);
     const sec = SECTIONS.find((x) => x.id === s);
     if (sec) setSubTab(sec.tabs[0].id);
+    // Preload Three.js chunk when entering Match section
+    if (s === 'match') import('./ui/MatchView');
   };
 
   const renderSubTab = () => {

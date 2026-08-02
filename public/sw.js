@@ -1,4 +1,6 @@
-const CACHE_NAME = 'indie-fm-v2';
+// Cache name derived from build timestamp for instant updates on deploy
+const BUILD_HASH = 'BUILD_TIMESTAMP_PLACEHOLDER';
+const CACHE_NAME = `indie-fm-${BUILD_HASH}`;
 const STATIC_ASSETS = [
   './',
   './index.html',
