@@ -10,6 +10,7 @@ import { applyShotTraits, applyPassTraits, applyTackleTraits, applyDribbleTraits
 import { WeatherCondition, applyWeatherToPass, applyWeatherToShot, applyWeatherToDribble, getWeatherEffects } from './weather-effects';
 import { MomentumState, getMomentumMultiplier } from './momentum';
 import { getFatigueMultiplier } from './fatigue';
+import { computePassDifficulty, computeGKDecision } from './decision-ai';
 
 let eventId = 0;
 
@@ -291,14 +292,16 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   const eventRoll = Math.random();
 
   if (eventRoll < 0.30) {
-    // Pass event — traits + weather + fatigue + momentum influence success
+    // Pass event — distance + pressure + traits + weather + fatigue + momentum
     const carrier = pickBallCarrier(attackingTeam, 'midfield');
     const carrierFitness = estimateFitness(carrier, newState.minute, weatherDrainMod);
     const fatigueMod = getFatigueMultiplier(carrierFitness);
     const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
+    const passDistance = 15 + Math.random() * 45;
+    const { successMod: distMod } = computePassDifficulty(carrier, passDistance, pressingMod);
     const basePassSuccess = atkStrength / (atkStrength + defStrength * pressingMod);
     const traitPassSuccess = applyPassTraits(basePassSuccess, carrier);
-    const passSuccess = applyWeatherToPass(traitPassSuccess, weather) * fatigueMod * (0.95 + (momentumMod - 0.9) * 0.3);
+    const passSuccess = applyWeatherToPass(traitPassSuccess, weather) * fatigueMod * distMod * (0.95 + (momentumMod - 0.9) * 0.3);
     const success = Math.random() < passSuccess;
     const x = isHomePossession ? 40 + Math.random() * 30 : 35 + Math.random() * 30;
     const y = 10 + Math.random() * 48;
@@ -389,25 +392,49 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
         }
       }
     } else if (onTarget) {
-      // GK attributes influence save chance distinctly
+      // GK decision AI: enhanced save logic with punch/catch/parry + rebounds
       const gk = defendingTeam.players.find((p) => p.position === 'GK');
-      const gkSaveMod = gk
-        ? (gk.attributes.reflexes / 20) * 0.4 + (gk.attributes.handling / 20) * 0.3 + (gk.attributes.oneOnOnes / 20) * 0.2 + (gk.attributes.positioning / 20) * 0.1
-        : 0.5;
-      const saved = Math.random() < gkSaveMod;
-      if (saved) {
-        newState.events = [...newState.events, createEvent(
-          newState.tick, 'save', defendingTeam.id,
-          `${gk?.name ?? 'Goalkeeper'} makes a great save from ${shooter.name}!`,
-          shotX, shotY, 'success', gk?.id,
-        )];
+      if (gk) {
+        const shotPower = shooter.attributes.finishing / 20;
+        const shotPlacement = Math.random() * (shooter.attributes.composure / 20);
+        const isOneOnOne = Math.random() < 0.15;
+        const gkDecision = computeGKDecision(gk, shotPower, shotPlacement, isOneOnOne);
+        const saved = Math.random() < gkDecision.saveChance;
+        if (saved) {
+          const actionDesc = gkDecision.action === 'catch' ? 'catches' : gkDecision.action === 'punch' ? 'punches clear' : gkDecision.action === 'dive' ? 'dives to save' : 'parries';
+          newState.events = [...newState.events, createEvent(
+            newState.tick, 'save', defendingTeam.id,
+            `${gk.name} ${actionDesc} from ${shooter.name}!`,
+            shotX, shotY, 'success', gk.id,
+          )];
+          // Rebound chance based on GK handling quality
+          if (Math.random() < gkDecision.reboundChance) {
+            const rebounder = pickBallCarrier(attackingTeam, 'attack');
+            if (Math.random() < 0.30) {
+              if (isHomePossession) newState.homeScore++;
+              else newState.awayScore++;
+              newState.events = [...newState.events, createEvent(
+                newState.tick, 'goal', attackingTeam.id,
+                `${rebounder.name} pounces on the rebound!`,
+                shotX, shotY, 'success', rebounder.id,
+              )];
+            }
+          }
+        } else {
+          if (isHomePossession) newState.homeScore++;
+          else newState.awayScore++;
+          newState.events = [...newState.events, createEvent(
+            newState.tick, 'goal', attackingTeam.id,
+            `${shooter.name} scores! ${gk.name} couldn't hold it!`,
+            shotX, shotY, 'success', shooter.id,
+          )];
+        }
       } else {
-        // GK failed to save — goal
         if (isHomePossession) newState.homeScore++;
         else newState.awayScore++;
         newState.events = [...newState.events, createEvent(
           newState.tick, 'goal', attackingTeam.id,
-          `${shooter.name} scores! ${gk?.name ?? 'Goalkeeper'} couldn't hold it!`,
+          `${shooter.name} scores into the empty net!`,
           shotX, shotY, 'success', shooter.id,
         )];
       }
