@@ -77,6 +77,10 @@ const UndoRedo = lazy(() => import('./ui/UndoRedo').then((m) => ({ default: m.Un
 const MatchInsights = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.MatchInsights })));
 const SquadDepthChart = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.SquadDepthChart })));
 const AchievementsPanel = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.AchievementsPanel })));
+const FanSatisfactionPanel = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.FanSatisfactionPanel })));
+const FinancialDashboard = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.FinancialDashboard })));
+const CommentaryFeed = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.CommentaryFeed })));
+const SettingsPanel = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.SettingsPanel })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -86,7 +90,7 @@ interface SubTab { id: string; label: string; }
 
 const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[] }> = [
   { id: 'match', label: 'Match', icon: '⚽', tabs: [
-    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' },
+    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' }, { id: 'commentary', label: 'Commentary' },
   ]},
   { id: 'league', label: 'League', icon: '📊', tabs: [
     { id: 'fixtures', label: 'Fixtures' }, { id: 'table', label: 'Table' }, { id: 'stats', label: 'Stats' }, { id: 'totw', label: 'TOTW' }, { id: 'preview', label: 'Preview' },
@@ -101,7 +105,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'transfers', label: 'Market' }, { id: 'negotiate', label: 'Negotiate' }, { id: 'transferhistory', label: 'History' }, { id: 'deadline', label: 'Deadline' }, { id: 'rumours', label: 'Rumours' }, { id: 'scouting', label: 'Scouting' }, { id: 'scouts', label: 'Scouts' }, { id: 'report', label: 'Report' }, { id: 'search', label: 'Search' }, { id: 'youth', label: 'Youth' }, { id: 'loans', label: 'Loans' }, { id: 'freeagents', label: 'Free Agents' }, { id: 'trials', label: 'Trials' },
   ]},
   { id: 'club', label: 'Club', icon: '🏢', tabs: [
-    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'finances', label: 'Finances' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
+    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'finances', label: 'Finances' }, { id: 'dashboard', label: 'P&L' }, { id: 'fans', label: 'Fans' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
   ]},
   { id: 'media', label: 'Media', icon: '📰', tabs: [
     { id: 'media', label: 'Press' }, { id: 'inbox', label: 'Inbox' },
@@ -113,7 +117,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'profile', label: 'Manager' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
   ]},
   { id: 'system', label: 'System', icon: '⚙️', tabs: [
-    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' },
+    { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' }, { id: 'settings', label: 'Settings' },
   ]},
 ];
 
@@ -257,6 +261,7 @@ export default function App() {
       case 'matchday': return <GuidedMatchday />;
       case 'analysis': return <TacticalAnalysis />;
       case 'insights': return <MatchInsights />;
+      case 'commentary': return <CommentaryFeed />;
       case 'fixtures': return <Suspense fallback={<TabFallback />}><FixtureList /></Suspense>;
       case 'table': return <Suspense fallback={<TabFallback />}><LeagueTable /></Suspense>;
       case 'stats': return <LeagueStats />;
@@ -290,6 +295,8 @@ export default function App() {
       case 'hiring': return <StaffHiring />;
       case 'training': return <TrainingReport />;
       case 'finances': return <FinancialReport />;
+      case 'dashboard': return <FinancialDashboard />;
+      case 'fans': return <FanSatisfactionPanel />;
       case 'board': return <Suspense fallback={<TabFallback />}><BoardFinances /></Suspense>;
       case 'meeting': return <BoardMeeting />;
       case 'vision': return <ClubVision />;
@@ -308,6 +315,7 @@ export default function App() {
       case 'modes': return <Suspense fallback={<TabFallback />}><GameModes /></Suspense>;
       case 'mods': return <Suspense fallback={<TabFallback />}><ModManager /></Suspense>;
       case 'save': return <Suspense fallback={<TabFallback />}><SaveLoadPanel /></Suspense>;
+      case 'settings': return <SettingsPanel />;
       default: return <TabFallback />;
     }
   };

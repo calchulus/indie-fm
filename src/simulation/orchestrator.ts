@@ -9,6 +9,7 @@ import { StaffMember } from './staff';
 import { createDevelopmentArc, processDevelopment } from './development-arcs';
 import { getUnhappyPlayers, getPlayersNeedingRenewal } from './happiness';
 import { conductMidSeasonReview, checkRetirementDecisions, getRetirementFarewellText } from './season-systems-2';
+import { detectGrowth, detectTrainingImprovements } from './progression';
 
 export interface RoundProcessingResult {
   league: League;
@@ -223,6 +224,23 @@ export function processRound(
     const retirements = checkRetirementDecisions(userTeam, true);
     for (const r of retirements) {
       news.push({ id: `retire_${r.player.id}_${league.currentRound}`, round: league.currentRound, category: 'transfer', headline: `${r.player.name} retires`, body: getRetirementFarewellText(r.player), importance: 'medium', read: false });
+    }
+  }
+
+  // 15f. Player growth notifications (compare before/after development)
+  if (userTeam) {
+    const originalUserTeam = league.teams.find((t) => t.id === userTeamId);
+    const developedUserTeam = finalTeams.find((t) => t.id === userTeamId);
+    if (originalUserTeam && developedUserTeam) {
+      const growth = detectGrowth(originalUserTeam.players, developedUserTeam.players);
+      for (const g of growth.slice(0, 3)) {
+        news.push({ id: `growth_${g.playerId}_${league.currentRound}`, round: league.currentRound, category: 'club', headline: g.message, body: `${g.playerName}: OVR ${g.oldOverall} → ${g.newOverall}`, importance: g.change > 0 ? 'medium' : 'low', read: false });
+      }
+      // Training improvements
+      const trainingResults = detectTrainingImprovements(originalUserTeam.players, developedUserTeam.players);
+      for (const t of trainingResults.slice(0, 2)) {
+        news.push({ id: `training_${t.playerId}_${league.currentRound}`, round: league.currentRound, category: 'club', headline: `${t.playerName} improved in training`, body: `${t.improvedAttr}: ${t.oldValue} → ${t.newValue}`, importance: 'low', read: false });
+      }
     }
   }
 
