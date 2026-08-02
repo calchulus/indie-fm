@@ -7,8 +7,9 @@ import { getCommentary } from './commentary';
 import { rollMatchDayInjury, rollPenalty, rollVARReview } from './matchday';
 import { computeTraitBonus } from './traits';
 import { applyShotTraits, applyPassTraits, applyTackleTraits, applyDribbleTraits, computeTraitMultipliers } from './trait-effects';
-import { WeatherCondition, applyWeatherToPass, applyWeatherToShot, applyWeatherToDribble } from './weather-effects';
+import { WeatherCondition, applyWeatherToPass, applyWeatherToShot, applyWeatherToDribble, getWeatherEffects } from './weather-effects';
 import { MomentumState, getMomentumMultiplier } from './momentum';
+import { getFatigueMultiplier } from './fatigue';
 
 let eventId = 0;
 
@@ -109,6 +110,18 @@ function pickBallCarrier(team: Team, zone: 'defense' | 'midfield' | 'attack'): P
   }
   if (candidates.length === 0) candidates = starters;
   return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// Estimate player fitness based on minute elapsed and stamina attribute.
+// Non-linear: players perform fine until ~65', then sharp dropoff.
+// High-stamina players resist fatigue longer.
+function estimateFitness(player: Player, minute: number, weatherDrainMod: number): number {
+  const staminaFactor = player.attributes.stamina / 20; // 0-1
+  const effectiveMinute = minute * weatherDrainMod * (1.3 - staminaFactor * 0.5);
+  if (effectiveMinute <= 50) return 100;
+  if (effectiveMinute <= 65) return 100 - (effectiveMinute - 50) * 1.2;
+  if (effectiveMinute <= 80) return 82 - (effectiveMinute - 65) * 2.0;
+  return Math.max(15, 52 - (effectiveMinute - 80) * 2.5);
 }
 
 export function initMatchState(home: Team, away: Team): MatchState {
@@ -256,6 +269,7 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
 
   const tempoMod = getTempoModifier(attackingTeam.tactics);
   const actionChance = 0.03 * tempoMod;
+  const weatherDrainMod = getWeatherEffects(weather).staminaDrainMod;
 
   // Ball follows possession every tick — lerp toward attacking team's forward zone
   const ballTargetX = isHomePossession
@@ -277,11 +291,14 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   const eventRoll = Math.random();
 
   if (eventRoll < 0.30) {
-    // Pass event — traits + weather influence success
+    // Pass event — traits + weather + fatigue + momentum influence success
     const carrier = pickBallCarrier(attackingTeam, 'midfield');
+    const carrierFitness = estimateFitness(carrier, newState.minute, weatherDrainMod);
+    const fatigueMod = getFatigueMultiplier(carrierFitness);
+    const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
     const basePassSuccess = atkStrength / (atkStrength + defStrength * pressingMod);
     const traitPassSuccess = applyPassTraits(basePassSuccess, carrier);
-    const passSuccess = applyWeatherToPass(traitPassSuccess, weather);
+    const passSuccess = applyWeatherToPass(traitPassSuccess, weather) * fatigueMod * (0.95 + (momentumMod - 0.9) * 0.3);
     const success = Math.random() < passSuccess;
     const x = isHomePossession ? 40 + Math.random() * 30 : 35 + Math.random() * 30;
     const y = 10 + Math.random() * 48;
@@ -297,11 +314,14 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
     )];
     newState.ballPosition = { x: isHomePossession ? x : PITCH_LENGTH - x, y };
   } else if (eventRoll < 0.42) {
-    // Dribble event — traits + weather influence success
+    // Dribble event — traits + weather + fatigue + momentum influence success
     const dribbler = pickBallCarrier(attackingTeam, 'attack');
+    const dribblerFitness = estimateFitness(dribbler, newState.minute, weatherDrainMod);
+    const fatigueMod = getFatigueMultiplier(dribblerFitness);
+    const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
     const baseDribbleSuccess = 0.55 * (atkStrength / (atkStrength + defStrength * 0.5));
     const traitDribbleSuccess = applyDribbleTraits(baseDribbleSuccess, dribbler);
-    const dribbleSuccess = applyWeatherToDribble(traitDribbleSuccess, weather);
+    const dribbleSuccess = applyWeatherToDribble(traitDribbleSuccess, weather) * fatigueMod * (0.95 + (momentumMod - 0.9) * 0.25);
     const success = Math.random() < dribbleSuccess;
     const x = isHomePossession ? 55 + Math.random() * 30 : 20 + Math.random() * 30;
     const y = 10 + Math.random() * 48;
@@ -322,9 +342,11 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
     const shotX = isHomePossession ? 85 + Math.random() * 15 : 5 + Math.random() * 10;
     const shotY = 30 + Math.random() * 8;
     const traitShotBonus = computeTraitBonus(shooter, 'shot');
-    // Momentum multiplier: consecutive attacks boost goal chance
+    // Momentum + fatigue: consecutive attacks boost goal chance, tired players finish worse
     const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
-    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod;
+    const shooterFitness = estimateFitness(shooter, newState.minute, weatherDrainMod);
+    const fatigueMod = getFatigueMultiplier(shooterFitness);
+    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod * fatigueMod;
     const { goalChance: traitGoalChance, onTarget: traitOnTarget } = applyShotTraits(baseGoalChance, 0.45, shooter);
     // Weather affects shot accuracy
     const onTargetChance = applyWeatherToShot(traitOnTarget, weather);
@@ -499,7 +521,7 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   movePlayersTowardFormation(newState, home, away, isHomePossession);
 
   // Stamina drain per tick — players tire as minutes progress
-  // Trait `staminaDrain` multiplier affects how fast players tire
+  // Trait `staminaDrain` multiplier + weather drain mod affect how fast players tire
   if (newState.tick % 30 === 0) { // Every 30 ticks (~0.5 min)
     const minuteFactor = newState.minute / 90; // 0→1 as match progresses
     newState.playerPositions = newState.playerPositions.map((pp) => {
@@ -507,8 +529,8 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
       const player = team.players.find((p) => p.id === pp.playerId);
       if (!player) return pp;
       const traits = computeTraitMultipliers(player);
-      const drain = 0.3 * minuteFactor * traits.staminaDrain;
-      // Store fatigue implicitly via position drift (tired players drift from formation)
+      const drain = 0.3 * minuteFactor * traits.staminaDrain * weatherDrainMod;
+      // Tired players drift from formation position
       return { ...pp, targetX: pp.targetX + (Math.random() - 0.5) * drain * 2, targetY: pp.targetY + (Math.random() - 0.5) * drain * 2 };
     });
   }

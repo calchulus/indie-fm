@@ -116,7 +116,7 @@ describe('Systems-2: Loans', () => {
   const team = generateTeam(0, 65);
 
   it('allows loan for bench player on large squad', () => {
-    const bigTeam: Team = { ...team, players: [...team.players, generatePlayer(99, 'CM', 22)] };
+    const bigTeam: Team = { ...team, players: [...team.players, generatePlayer('CM', 60)] };
     const benchPlayer = bigTeam.players[bigTeam.players.length - 1];
     expect(canLoanPlayer(bigTeam, benchPlayer)).toBe(true);
   });

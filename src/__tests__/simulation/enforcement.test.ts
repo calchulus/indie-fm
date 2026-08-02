@@ -85,7 +85,7 @@ describe('Enforcement Rules', () => {
     });
 
     it('detects full squad', () => {
-      const fullTeam: Team = { ...team, players: Array.from({ length: 25 }, (_, i) => generatePlayer(i, 'CM', 25)) };
+      const fullTeam: Team = { ...team, players: Array.from({ length: 25 }, () => generatePlayer('CM', 65)) };
       expect(isSquadFull(fullTeam)).toBe(true);
       expect(canSignPlayer(fullTeam)).toBe(false);
     });
