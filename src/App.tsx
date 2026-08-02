@@ -81,6 +81,10 @@ const FanSatisfactionPanel = lazy(() => import('./ui/ClubDashboard').then((m) =>
 const FinancialDashboard = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.FinancialDashboard })));
 const CommentaryFeed = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.CommentaryFeed })));
 const SettingsPanel = lazy(() => import('./ui/ClubDashboard').then((m) => ({ default: m.SettingsPanel })));
+const MatchPreviewPanel2 = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.MatchPreviewPanel2 })));
+const MedicalCenter = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.MedicalCenter })));
+const CupBracket = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.CupBracket })));
+const TrainingSchedule = lazy(() => import('./ui/MediumFeaturesUI').then((m) => ({ default: m.TrainingSchedule })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -90,7 +94,7 @@ interface SubTab { id: string; label: string; }
 
 const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[] }> = [
   { id: 'match', label: 'Match', icon: '⚽', tabs: [
-    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' }, { id: 'commentary', label: 'Commentary' },
+    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' }, { id: 'commentary', label: 'Commentary' }, { id: 'matchpreview', label: 'Preview' },
   ]},
   { id: 'league', label: 'League', icon: '📊', tabs: [
     { id: 'fixtures', label: 'Fixtures' }, { id: 'table', label: 'Table' }, { id: 'stats', label: 'Stats' }, { id: 'totw', label: 'TOTW' }, { id: 'preview', label: 'Preview' },
@@ -99,19 +103,19 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'tactics', label: 'Formation' }, { id: 'presets', label: 'Presets' }, { id: 'designer', label: 'Designer' }, { id: 'advanced', label: 'Set Pieces' }, { id: 'undoredo', label: 'Undo/Redo' },
   ]},
   { id: 'squad', label: 'Squad', icon: '👥', tabs: [
-    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' },
+    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' }, { id: 'medical', label: 'Medical' },
   ]},
   { id: 'transfers', label: 'Transfers', icon: '💰', tabs: [
     { id: 'transfers', label: 'Market' }, { id: 'negotiate', label: 'Negotiate' }, { id: 'transferhistory', label: 'History' }, { id: 'deadline', label: 'Deadline' }, { id: 'rumours', label: 'Rumours' }, { id: 'scouting', label: 'Scouting' }, { id: 'scouts', label: 'Scouts' }, { id: 'report', label: 'Report' }, { id: 'search', label: 'Search' }, { id: 'youth', label: 'Youth' }, { id: 'loans', label: 'Loans' }, { id: 'freeagents', label: 'Free Agents' }, { id: 'trials', label: 'Trials' },
   ]},
   { id: 'club', label: 'Club', icon: '🏢', tabs: [
-    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'finances', label: 'Finances' }, { id: 'dashboard', label: 'P&L' }, { id: 'fans', label: 'Fans' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
+    { id: 'staff', label: 'Staff' }, { id: 'hiring', label: 'Hiring' }, { id: 'training', label: 'Training' }, { id: 'schedule', label: 'Schedule' }, { id: 'finances', label: 'Finances' }, { id: 'dashboard', label: 'P&L' }, { id: 'fans', label: 'Fans' }, { id: 'board', label: 'Board' }, { id: 'meeting', label: 'Meeting' }, { id: 'vision', label: 'Vision' },
   ]},
   { id: 'media', label: 'Media', icon: '📰', tabs: [
     { id: 'media', label: 'Press' }, { id: 'inbox', label: 'Inbox' },
   ]},
   { id: 'compete', label: 'Compete', icon: '🏆', tabs: [
-    { id: 'cups', label: 'Cups' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
+    { id: 'cups', label: 'Cups' }, { id: 'bracket', label: 'Bracket' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
   ]},
   { id: 'profile', label: 'Profile', icon: '👤', tabs: [
     { id: 'profile', label: 'Manager' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
@@ -262,6 +266,7 @@ export default function App() {
       case 'analysis': return <TacticalAnalysis />;
       case 'insights': return <MatchInsights />;
       case 'commentary': return <CommentaryFeed />;
+      case 'matchpreview': return <MatchPreviewPanel2 />;
       case 'fixtures': return <Suspense fallback={<TabFallback />}><FixtureList /></Suspense>;
       case 'table': return <Suspense fallback={<TabFallback />}><LeagueTable /></Suspense>;
       case 'stats': return <LeagueStats />;
@@ -278,6 +283,7 @@ export default function App() {
       case 'development': return <DevelopmentPanel />;
       case 'morale': return <MoralePanel />;
       case 'depth': return <SquadDepthChart />;
+      case 'medical': return <MedicalCenter />;
       case 'transfers': return <Suspense fallback={<TabFallback />}><TransferCenter /></Suspense>;
       case 'negotiate': return <TransferNegotiation />;
       case 'transferhistory': return <TransferHistory />;
@@ -297,12 +303,14 @@ export default function App() {
       case 'finances': return <FinancialReport />;
       case 'dashboard': return <FinancialDashboard />;
       case 'fans': return <FanSatisfactionPanel />;
+      case 'schedule': return <TrainingSchedule />;
       case 'board': return <Suspense fallback={<TabFallback />}><BoardFinances /></Suspense>;
       case 'meeting': return <BoardMeeting />;
       case 'vision': return <ClubVision />;
       case 'media': return <Suspense fallback={<TabFallback />}><MediaCenter /></Suspense>;
       case 'inbox': return <NotificationInbox />;
       case 'cups': return <Suspense fallback={<TabFallback />}><Competitions /></Suspense>;
+      case 'bracket': return <CupBracket />;
       case 'continental': return <ContinentalCup />;
       case 'international': return <InternationalManagement />;
       case 'profile': return <ManagerProfile />;
