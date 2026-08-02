@@ -73,6 +73,9 @@ const LoanSystem = lazy(() => import('./ui/LoanSystem').then((m) => ({ default: 
 const FreeAgentPool = lazy(() => import('./ui/FreeAgentPool').then((m) => ({ default: m.FreeAgentPool })));
 const TrialSystem = lazy(() => import('./ui/TrialSystem').then((m) => ({ default: m.TrialSystem })));
 const UndoRedo = lazy(() => import('./ui/UndoRedo').then((m) => ({ default: m.UndoRedo })));
+const MatchInsights = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.MatchInsights })));
+const SquadDepthChart = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.SquadDepthChart })));
+const AchievementsPanel = lazy(() => import('./ui/GamePanels').then((m) => ({ default: m.AchievementsPanel })));
 
 // --- Section-based navigation (10 sections, sub-tabs within each) ---
 
@@ -82,7 +85,7 @@ interface SubTab { id: string; label: string; }
 
 const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[] }> = [
   { id: 'match', label: 'Match', icon: '⚽', tabs: [
-    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' },
+    { id: 'match', label: 'Live' }, { id: 'matchday', label: 'Matchday' }, { id: 'replay', label: 'Replay' }, { id: 'analysis', label: 'Analysis' }, { id: 'insights', label: 'Insights' },
   ]},
   { id: 'league', label: 'League', icon: '📊', tabs: [
     { id: 'fixtures', label: 'Fixtures' }, { id: 'table', label: 'Table' }, { id: 'stats', label: 'Stats' }, { id: 'totw', label: 'TOTW' }, { id: 'preview', label: 'Preview' },
@@ -91,7 +94,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'tactics', label: 'Formation' }, { id: 'presets', label: 'Presets' }, { id: 'designer', label: 'Designer' }, { id: 'advanced', label: 'Set Pieces' }, { id: 'undoredo', label: 'Undo/Redo' },
   ]},
   { id: 'squad', label: 'Squad', icon: '👥', tabs: [
-    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' },
+    { id: 'squad', label: 'Players' }, { id: 'planner', label: 'Planner' }, { id: 'contracts', label: 'Contracts' }, { id: 'development', label: 'Growth' }, { id: 'morale', label: 'Morale' }, { id: 'depth', label: 'Depth' },
   ]},
   { id: 'transfers', label: 'Transfers', icon: '💰', tabs: [
     { id: 'transfers', label: 'Market' }, { id: 'negotiate', label: 'Negotiate' }, { id: 'transferhistory', label: 'History' }, { id: 'deadline', label: 'Deadline' }, { id: 'rumours', label: 'Rumours' }, { id: 'scouting', label: 'Scouting' }, { id: 'scouts', label: 'Scouts' }, { id: 'report', label: 'Report' }, { id: 'search', label: 'Search' }, { id: 'youth', label: 'Youth' }, { id: 'loans', label: 'Loans' }, { id: 'freeagents', label: 'Free Agents' }, { id: 'trials', label: 'Trials' },
@@ -106,7 +109,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'cups', label: 'Cups' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
   ]},
   { id: 'profile', label: 'Profile', icon: '👤', tabs: [
-    { id: 'profile', label: 'Manager' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' },
+    { id: 'profile', label: 'Manager' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
   ]},
   { id: 'system', label: 'System', icon: '⚙️', tabs: [
     { id: 'modes', label: 'Modes' }, { id: 'mods', label: 'Mods' }, { id: 'save', label: 'Save' },
@@ -231,6 +234,7 @@ export default function App() {
       case 'replay': return <MatchReplay />;
       case 'matchday': return <GuidedMatchday />;
       case 'analysis': return <TacticalAnalysis />;
+      case 'insights': return <MatchInsights />;
       case 'fixtures': return <Suspense fallback={<TabFallback />}><FixtureList /></Suspense>;
       case 'table': return <Suspense fallback={<TabFallback />}><LeagueTable /></Suspense>;
       case 'stats': return <LeagueStats />;
@@ -246,6 +250,7 @@ export default function App() {
       case 'contracts': return <ContractsPanel />;
       case 'development': return <DevelopmentPanel />;
       case 'morale': return <MoralePanel />;
+      case 'depth': return <SquadDepthChart />;
       case 'transfers': return <Suspense fallback={<TabFallback />}><TransferCenter /></Suspense>;
       case 'negotiate': return <TransferNegotiation />;
       case 'transferhistory': return <TransferHistory />;
@@ -277,6 +282,7 @@ export default function App() {
       case 'compare': return <PlayerComparison />;
       case 'data': return <Suspense fallback={<TabFallback />}><DataHub /></Suspense>;
       case 'export': return <DataExport />;
+      case 'achievements': return <AchievementsPanel />;
       case 'modes': return <Suspense fallback={<TabFallback />}><GameModes /></Suspense>;
       case 'mods': return <Suspense fallback={<TabFallback />}><ModManager /></Suspense>;
       case 'save': return <Suspense fallback={<TabFallback />}><SaveLoadPanel /></Suspense>;
