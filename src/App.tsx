@@ -18,6 +18,7 @@ import { useKeyboardNav, KeyboardShortcutsModal } from './ui/KeyboardNav';
 import { LANGUAGES, getLanguage, setLanguage, Language } from './i18n/translations';
 import { loadUIState, saveUIState } from './simulation/gameplay-ux';
 import { QuickTactics } from './ui/QuickTactics';
+import { PhaseTransitionModal, DraftScreen, FreeAgencyScreen, PlayoffScreen, SeasonSummaryScreen } from './ui/PhaseUI';
 import { SECTION_ICONS } from './ui/Icons';
 
 const MatchView = lazy(() => import('./ui/MatchView').then((m) => ({ default: m.MatchView })));
@@ -122,7 +123,7 @@ const SECTIONS: Array<{ id: Section; label: string; icon: string; tabs: SubTab[]
     { id: 'media', label: 'Press' }, { id: 'inbox', label: 'Inbox' },
   ]},
   { id: 'compete', label: 'Compete', icon: '🏆', tabs: [
-    { id: 'cups', label: 'Cups' }, { id: 'bracket', label: 'Bracket' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
+    { id: 'cups', label: 'Cups' }, { id: 'bracket', label: 'Bracket' }, { id: 'playoffs', label: 'Playoffs' }, { id: 'draft', label: 'Draft' }, { id: 'freeagency', label: 'Free Agency' }, { id: 'summary', label: 'Summary' }, { id: 'continental', label: 'Continental' }, { id: 'international', label: 'International' },
   ]},
   { id: 'profile', label: 'Profile', icon: '👤', tabs: [
     { id: 'profile', label: 'Manager' }, { id: 'create', label: 'Create' }, { id: 'history', label: 'History' }, { id: 'review', label: 'Review' }, { id: 'compare', label: 'Compare' }, { id: 'data', label: 'Data Hub' }, { id: 'export', label: 'Export' }, { id: 'achievements', label: 'Awards' },
@@ -323,6 +324,10 @@ export default function App() {
       case 'inbox': return <NotificationInbox />;
       case 'cups': return <Suspense fallback={<TabFallback />}><Competitions /></Suspense>;
       case 'bracket': return <CupBracket />;
+      case 'playoffs': return <PlayoffScreen />;
+      case 'draft': return <DraftScreen />;
+      case 'freeagency': return <FreeAgencyScreen />;
+      case 'summary': return <SeasonSummaryScreen />;
       case 'continental': return <ContinentalCup />;
       case 'international': return <InternationalManagement />;
       case 'profile': return <ManagerProfile />;
@@ -344,6 +349,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+    <PhaseTransitionModal />
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Top nav: 10 sections */}
       <header style={{ display: 'flex', alignItems: 'center', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.3)' }}>
