@@ -15,6 +15,32 @@ import { rollInjury } from './setpieces';
 
 let eventId = 0;
 
+// Team strength cache — avoids recalculating expensive attribute math every tick.
+// Invalidated when tactics change (formation/mentality/pressing).
+interface StrengthCache {
+  teamId: string;
+  tacticsKey: string;
+  attack: number;
+  defend: number;
+}
+let strengthCache: StrengthCache[] = [];
+
+function getTeamStrengthCached(team: Team, phase: 'attack' | 'defend'): number {
+  const tacticsKey = `${team.tactics.formation}|${team.tactics.mentality}|${team.tactics.pressing}`;
+  const cached = strengthCache.find((c) => c.teamId === team.id && c.tacticsKey === tacticsKey);
+  if (cached) return phase === 'attack' ? cached.attack : cached.defend;
+
+  const attack = teamStrength(team, 'attack');
+  const defend = teamStrength(team, 'defend');
+  strengthCache = strengthCache.filter((c) => c.teamId !== team.id);
+  strengthCache.push({ teamId: team.id, tacticsKey, attack, defend });
+  return phase === 'attack' ? attack : defend;
+}
+
+export function invalidateStrengthCache(): void {
+  strengthCache = [];
+}
+
 function createEvent(
   tick: number,
   type: MatchEvent['type'],
@@ -273,10 +299,10 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   const homeRedMod = newState.redCards.home > 0 ? 0.75 : 1.0;
   const awayRedMod = newState.redCards.away > 0 ? 0.75 : 1.0;
 
-  const homeAtk = teamStrength(home, 'attack') * getMentalityModifier(home.tactics).attack * homeRedMod;
-  const awayAtk = teamStrength(away, 'attack') * getMentalityModifier(away.tactics).attack * awayRedMod;
-  const homeDef = teamStrength(home, 'defend') * getMentalityModifier(home.tactics).defend * homeRedMod;
-  const awayDef = teamStrength(away, 'defend') * getMentalityModifier(away.tactics).defend * awayRedMod;
+  const homeAtk = getTeamStrengthCached(home, 'attack') * getMentalityModifier(home.tactics).attack * homeRedMod;
+  const awayAtk = getTeamStrengthCached(away, 'attack') * getMentalityModifier(away.tactics).attack * awayRedMod;
+  const homeDef = getTeamStrengthCached(home, 'defend') * getMentalityModifier(home.tactics).defend * homeRedMod;
+  const awayDef = getTeamStrengthCached(away, 'defend') * getMentalityModifier(away.tactics).defend * awayRedMod;
 
   const totalAtk = homeAtk + awayAtk;
   const possessionRoll = Math.random() * totalAtk;
@@ -655,7 +681,12 @@ function movePlayersTowardFormation(state: MatchState, home: Team, away: Team, h
   const homeSlots = getFormationSlots(home.tactics.formation);
   const awaySlots = getFormationSlots(away.tactics.formation);
 
-  // Shift formation toward ball side: attacking team pushes up, defending team drops back
+  // Pre-build index maps to avoid O(n²) findIndex per tick
+  const homeIdx = new Map<string, number>();
+  const awayIdx = new Map<string, number>();
+  home.players.forEach((p, i) => homeIdx.set(p.id, i));
+  away.players.forEach((p, i) => awayIdx.set(p.id, i));
+
   const homeShift = homeHasBall ? 8 : -5;
   const awayShift = homeHasBall ? -5 : 8;
 
@@ -663,7 +694,7 @@ function movePlayersTowardFormation(state: MatchState, home: Team, away: Team, h
     const isHome = pp.teamId === home.id;
     const team = isHome ? home : away;
     const slots = isHome ? homeSlots : awaySlots;
-    const playerIdx = team.players.findIndex((p) => p.id === pp.playerId);
+    const playerIdx = isHome ? (homeIdx.get(pp.playerId) ?? -1) : (awayIdx.get(pp.playerId) ?? -1);
     if (playerIdx < 0 || playerIdx >= slots.length) return pp;
 
     const player = team.players[playerIdx];
