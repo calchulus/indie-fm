@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { MatchState } from '../types';
 
@@ -65,7 +65,7 @@ function computeRatings(state: MatchState, teamId: string, players: Array<{ id: 
   return ratings.map((r) => ({ ...r, rating: Math.max(3, Math.min(10, Math.round(r.rating * 10) / 10)) }));
 }
 
-export function PostMatchSummary() {
+export const PostMatchSummary = memo(function PostMatchSummary() {
   const matchState = useGameStore((s) => s.matchState);
   const matchHome = useGameStore((s) => s.matchHome);
   const matchAway = useGameStore((s) => s.matchAway);
@@ -106,7 +106,7 @@ export function PostMatchSummary() {
       </div>
     </div>
   );
-}
+});
 
 function RatingColumn({ title, ratings, color, ratingColor }: {
   title: string;

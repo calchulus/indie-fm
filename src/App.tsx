@@ -16,6 +16,7 @@ import { CareerSetup } from './ui/CareerSetup';
 import { HelpGuide, FirstTimeGuide } from './ui/HelpGuide';
 import { useKeyboardNav, KeyboardShortcutsModal } from './ui/KeyboardNav';
 import { LANGUAGES, getLanguage, setLanguage, Language } from './i18n/translations';
+import { loadUIState, saveUIState } from './simulation/gameplay-ux';
 import { SECTION_ICONS } from './ui/Icons';
 
 const MatchView = lazy(() => import('./ui/MatchView').then((m) => ({ default: m.MatchView })));
@@ -122,10 +123,13 @@ function TabFallback() {
 
 export default function App() {
   const { league, initGame, resumeFromAutosave, matchState, isSimulating, setSimulating, setSimSpeed, careerStarted, sacked, resetCareer } = useGameStore();
-  const [section, setSection] = useState<Section>('match');
-  const [subTab, setSubTab] = useState('match');
+  const [section, setSection] = useState<Section>(() => (loadUIState()?.section as Section) ?? 'match');
+  const [subTab, setSubTab] = useState(() => loadUIState()?.subTab ?? 'match');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [lang, setLang] = useState<Language>(getLanguage());
+
+  // #16: Persist UI state on section/tab change
+  useEffect(() => { saveUIState({ section, subTab }); }, [section, subTab]);
 
   useEffect(() => {
     if (!league) {

@@ -13,27 +13,44 @@ export function MatchControls() {
   const league = useGameStore((s) => s.league);
   const userTeamId = useGameStore((s) => s.userTeamId);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const rafRef = useRef<number | null>(null);
   const simulatingRef = useRef(isSimulating);
   simulatingRef.current = isSimulating;
+  const lastTickRef = useRef(0);
 
   const clearSim = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     }
   }, []);
 
+  // #8: requestAnimationFrame loop with #6: throttled batch updates
   useEffect(() => {
     clearSim();
     if (isSimulating && matchState && matchState.status !== 'full_time') {
-      const ms = Math.max(16, 250 / simSpeed);
-      intervalRef.current = setInterval(() => {
-        tickMatch();
-      }, ms);
+      const tickInterval = 1000 / (simSpeed * 4); // 4 ticks/sec at 1x, 32 at 8x
+      const batchThreshold = simSpeed > 2; // batch at high speeds
+
+      const loop = (timestamp: number) => {
+        if (!simulatingRef.current) return;
+        const elapsed = timestamp - lastTickRef.current;
+
+        if (elapsed >= tickInterval) {
+          lastTickRef.current = timestamp;
+          if (batchThreshold) {
+            // #6: Batch multiple ticks into one state update at high speed
+            simMinutes(1);
+          } else {
+            tickMatch();
+          }
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+      rafRef.current = requestAnimationFrame(loop);
     }
     return clearSim;
-  }, [isSimulating, simSpeed, matchState?.status, clearSim, tickMatch, matchState]);
+  }, [isSimulating, simSpeed, matchState?.status, clearSim, tickMatch, simMinutes, matchState]);
 
   const handleQuickMatch = () => {
     if (!league) return;

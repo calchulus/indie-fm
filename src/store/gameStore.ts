@@ -613,9 +613,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       }
     }
 
-    // Autosave after every round (IndexedDB primary, localStorage fallback)
+    // Autosave every 5 rounds (#11: debounced) + always at season boundaries
     const finalState = get();
-    if (finalState.league && finalState.userTeamId) {
+    const shouldSave = finalState.league && finalState.userTeamId &&
+      (finalState.league.currentRound % 5 === 0 || get().seasonComplete);
+    if (shouldSave && finalState.league && finalState.userTeamId) {
       const saveData = {
         version: 1,
         savedAt: Date.now(),
