@@ -12,6 +12,7 @@ import { MomentumState, getMomentumMultiplier } from './momentum';
 import { getFatigueMultiplier } from './fatigue';
 import { computePassDifficulty, computeGKDecision } from './decision-ai';
 import { rollInjury } from './setpieces';
+import { advanceChain, createPossessionChain, detectCounterAttack, tickCounter, getCounterAttackBonus, PossessionChain, CounterAttackState } from './match-context';
 
 let eventId = 0;
 
@@ -39,6 +40,17 @@ function getTeamStrengthCached(team: Team, phase: 'attack' | 'defend'): number {
 
 export function invalidateStrengthCache(): void {
   strengthCache = [];
+}
+
+// Match context state — persists across ticks within a match
+let homeChain: PossessionChain = createPossessionChain('');
+let awayChain: PossessionChain = createPossessionChain('');
+let counterState: CounterAttackState = { active: false, teamId: null, speed: 0, ticksRemaining: 0 };
+
+export function resetMatchContext(homeId: string, awayId: string): void {
+  homeChain = createPossessionChain(homeId);
+  awayChain = createPossessionChain(awayId);
+  counterState = { active: false, teamId: null, speed: 0, ticksRemaining: 0 };
 }
 
 function createEvent(
@@ -153,6 +165,8 @@ function estimateFitness(player: Player, minute: number, weatherDrainMod: number
 }
 
 export function initMatchState(home: Team, away: Team): MatchState {
+  resetMatchContext(home.id, away.id);
+  invalidateStrengthCache();
   const homeSlots = getFormationSlots(home.tactics.formation);
   const awaySlots = getFormationSlots(away.tactics.formation);
 
@@ -313,6 +327,11 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
   const atkStrength = isHomePossession ? homeAtk : awayAtk;
   const defStrength = isHomePossession ? awayDef : homeDef;
 
+  // Match context: tick counter-attack, apply chain/counter bonuses
+  counterState = tickCounter(counterState);
+  const counterBonus = getCounterAttackBonus(counterState, attackingTeam.id);
+  const chainBonus = isHomePossession ? homeChain.bonus : awayChain.bonus;
+
   newState.possession = {
     home: Math.round((state.possession.home * state.tick + (isHomePossession ? 1 : 0)) / (state.tick + 1) * 100) / 100,
     away: 0,
@@ -367,6 +386,9 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
       x, y, success ? 'success' : 'failure', carrier.id,
     )];
     newState.ballPosition = { x: isHomePossession ? x : PITCH_LENGTH - x, y };
+    // Possession chain tracking: advance on success, reset on failure
+    if (isHomePossession) homeChain = advanceChain(homeChain, success);
+    else awayChain = advanceChain(awayChain, success);
   } else if (eventRoll < 0.42) {
     // Dribble event — traits + weather + fatigue + momentum influence success
     const dribbler = pickBallCarrier(attackingTeam, 'attack');
@@ -400,7 +422,7 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
     const momentumMod = momentum ? getMomentumMultiplier(momentum, attackingTeam.id, home.id) : 1.0;
     const shooterFitness = estimateFitness(shooter, newState.minute, weatherDrainMod);
     const fatigueMod = getFatigueMultiplier(shooterFitness);
-    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod * fatigueMod;
+    const baseGoalChance = ((shooter.attributes.finishing / 20) + traitShotBonus) * (atkStrength / (atkStrength + defStrength)) * 0.35 * momentumMod * fatigueMod * (1 + chainBonus + counterBonus);
     const { goalChance: traitGoalChance, onTarget: traitOnTarget } = applyShotTraits(baseGoalChance, 0.45, shooter);
     // Weather affects shot accuracy
     const onTargetChance = applyWeatherToShot(traitOnTarget, weather);
@@ -558,6 +580,14 @@ export function simulateTick(state: MatchState, home: Team, away: Team, weather:
         getCommentary('tackle', tackler.name),
         x, y, success ? 'success' : 'failure', tackler.id,
       )];
+      // Counter-attack detection: successful tackle in own half triggers break
+      if (success) {
+        const ballInOwnHalf = isHomePossession ? x > 50 : x < 50;
+        counterState = detectCounterAttack(defendingTeam, ballInOwnHalf, attackingTeam.id);
+        // Reset possession chain for the team that lost the ball
+        if (isHomePossession) homeChain = advanceChain(homeChain, false);
+        else awayChain = advanceChain(awayChain, false);
+      }
     }
   } else if (eventRoll < 0.80) {
     const x = isHomePossession ? 90 + Math.random() * 10 : 5 + Math.random() * 5;
